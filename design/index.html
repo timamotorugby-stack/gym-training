@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>トレーニング</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1b19;
+      --muted: #6f6a62;
+      --paper: #f3f0e8;
+      --card: #fffcf7;
+      --line: #e3ddd2;
+      --track: #e6e0d4;
+      --green: #1f6b4a;
+      --green-soft: #e5f2eb;
+      --blue: #1d4e89;
+      --blue-soft: #e6eef8;
+      --danger: #9d3b32;
+      --shadow: 0 1px 2px rgba(28, 27, 25, 0.05);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    .wrap {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: rgba(243, 240, 232, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(227, 221, 210, 0.9);
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px 24px;
+      padding: 16px 0;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .tabs {
+      display: flex;
+      width: min(100%, 420px);
+      padding: 4px;
+      background: var(--track);
+      border-radius: 14px;
+    }
+
+    .tabs button {
+      flex: 1;
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #5c574f;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .tabs button[aria-selected="true"] {
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    main { padding: 8px 0 72px; }
+
+    .lead {
+      margin: 18px 0 20px;
+      color: var(--muted);
+    }
+
+    .narrow { width: min(720px, 100%); }
+
+    .progress {
+      margin-bottom: 16px;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 6px;
+      border-radius: 99px;
+      background: var(--track);
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--green);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px 16px 12px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .ord {
+      margin: 0;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #9a948a;
+    }
+
+    .card h2 {
+      margin: 2px 0 0;
+      font-size: 1.35rem;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .part {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .part i {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      display: block;
+    }
+
+    .note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .text-btn {
+      border: 0;
+      background: transparent;
+      min-height: 40px;
+      padding: 0 4px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .text-btn:hover { color: var(--ink); }
+
+    .sets { margin-top: 12px; display: grid; gap: 6px; }
+
+    .set {
+      width: 100%;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 12px;
+      background: #f6f3ec;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .box {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #c9c2b4;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .set[aria-pressed="true"] {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .set[aria-pressed="true"] .box {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .set[aria-pressed="true"] .box::after {
+      content: "";
+      width: 6px;
+      height: 10px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: translateY(-1px) rotate(45deg);
+    }
+
+    .empty-slot {
+      width: 100%;
+      min-height: 112px;
+      border: 1.5px dashed #cfc6b6;
+      border-radius: 18px;
+      background: transparent;
+      margin-bottom: 12px;
+      text-align: left;
+      padding: 16px;
+    }
+
+    .empty-slot strong {
+      display: block;
+      font-size: 1.15rem;
+    }
+
+    .empty-slot span {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .panel-card, form, .timer-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    form { padding: 18px; }
+
+    form h2, .side-title {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    input[type="text"] {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    fieldset {
+      border: 0;
+      margin: 0 0 14px;
+      padding: 0;
+    }
+
+    legend {
+      padding: 0;
+      margin-bottom: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .chip {
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid #ddd6c8;
+      background: #fff;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .chip.is-on {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #f4f1ea;
+    }
+
+    .form-error {
+      margin: 0 0 12px;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .form-actions { display: flex; gap: 8px; align-items: center; }
+
+    .primary {
+      min-height: 48px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--ink);
+      color: #f4f1ea;
+      font-weight: 700;
+    }
+
+    .status {
+      min-height: 1.4em;
+      margin: 12px 0;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .filters { margin: 4px 0 8px; }
+
+    .group-label {
+      margin: 18px 0 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .ex-row {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .ex-row h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    .ex-row p { margin: 2px 0 0; color: var(--muted); font-size: 0.88rem; }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+    }
+
+    .row-actions { display: flex; gap: 4px; }
+
+    .danger { color: var(--danger); }
+
+    .empty-copy {
+      margin: 20px 0;
+      color: var(--muted);
+    }
+
+    .timer-layout {
+      display: grid;
+      gap: 20px;
+    }
+
+    .timer-card {
+      padding: 28px 22px 22px;
+      text-align: center;
+    }
+
+    .phase {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+    }
+
+    .time {
+      margin: 8px 0 0;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-size: clamp(96px, 16vw, 132px);
+      font-weight: 500;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .round-label {
+      margin: 10px 0 0;
+      font-weight: 700;
+    }
+
+    .rounds {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 14px 0 8px;
+    }
+
+    .rounds i {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background: #ddd6c8;
+      display: block;
+    }
+
+    .rounds i.on { background: var(--ink); }
+    .rounds i.now { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    .spec {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .go {
+      width: 100%;
+      min-height: 56px;
+      border-radius: 14px;
+    }
+
+    .timer-card.is-running .go {
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid var(--ink);
+    }
+
+    .timer-card.is-work { background: var(--green-soft); border-color: #cfe3d8; }
+    .timer-card.is-work .phase, .timer-card.is-work .time { color: var(--green); }
+    .timer-card.is-rest { background: var(--blue-soft); border-color: #d3e0f0; }
+    .timer-card.is-rest .phase, .timer-card.is-rest .time { color: var(--blue); }
+    .timer-card.is-done .time { font-size: clamp(64px, 10vw, 84px); letter-spacing: 0; }
+
+    .ghost {
+      margin-top: 8px;
+      min-height: 44px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .compact {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 14px;
+    }
+
+    .compact h2 { font-size: 1.08rem; }
+
+    .checks { display: flex; gap: 8px; }
+
+    .dotcheck {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 0;
+      background: #f6f3ec;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-weight: 600;
+    }
+
+    .dotcheck[aria-pressed="true"] {
+      background: var(--green);
+      color: white;
+    }
+
+    dialog {
+      border: 0;
+      padding: 0;
+      width: min(520px, calc(100vw - 32px));
+      max-height: min(740px, calc(100vh - 40px));
+      border-radius: 20px;
+      color: var(--ink);
+      box-shadow: 0 24px 70px rgba(28, 27, 25, 0.24);
+    }
+
+    dialog::backdrop { background: rgba(28, 27, 25, 0.46); }
+
+    .dialog-body {
+      padding: 18px 18px 8px;
+      overflow: auto;
+      max-height: min(740px, calc(100vh - 40px));
+    }
+
+    .dialog-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pick {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      padding: 14px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .pick:disabled { color: #a39e94; cursor: default; }
+    .pick small { color: var(--muted); font-weight: 700; }
+
+    @media (min-width: 860px) {
+      .timer-layout {
+        grid-template-columns: minmax(0, 1fr) 340px;
+        align-items: start;
+      }
+      .timer-card { position: sticky; top: 92px; }
+    }
+
+    @media (max-width: 859px) {
+      .timer-card { order: -1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap head">
+      <h1>トレーニング</h1>
+      <div class="tabs" role="tablist" aria-label="モード">
+        <button type="button" role="tab" id="tab-menu" aria-controls="panel-menu" aria-selected="true">メニュー</button>
+        <button type="button" role="tab" id="tab-db" aria-controls="panel-db" aria-selected="false">データベース</button>
+        <button type="button" role="tab" id="tab-timer" aria-controls="panel-timer" aria-selected="false">タイマー</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="lead" id="lead">今日やる5種目です。各種目を3セット行います。</p>
+
+    <section id="panel-menu" role="tabpanel" aria-labelledby="tab-menu">
+      <div class="narrow">
+        <div class="progress">
+          <div class="progress-top">
+            <span>セット</span>
+            <span id="progress-count">0 / 15</span>
+          </div>
+          <div class="bar" aria-hidden="true"><span id="progress-fill"></span></div>
+        </div>
+        <div id="menu-list"></div>
+      </div>
+    </section>
+
+    <section id="panel-db" role="tabpanel" aria-labelledby="tab-db" hidden>
+      <div class="narrow">
+        <form id="exercise-form">
+          <h2 id="form-title">種目を追加</h2>
+          <label>種目名
+            <input type="text" id="name" name="name" maxlength="40" placeholder="スクワット" autocomplete="off">
+          </label>
+          <fieldset>
+            <legend>部位</legend>
+            <div class="chips" id="form-parts"></div>
+          </fieldset>
+          <label>メモ
+            <input type="text" id="note" name="note" maxlength="80" placeholder="肩甲骨を寄せる、など" autocomplete="off">
+          </label>
+          <p class="form-error" id="form-error" hidden></p>
+          <div class="form-actions">
+            <button class="primary" type="submit" id="save-btn">登録する</button>
+            <button class="text-btn" type="button" id="cancel-edit" hidden>キャンセル</button>
+          </div>
+        </form>
+        <p class="status" id="db-status" role="status"></p>
+        <div class="chips filters" id="db-filters"></div>
+        <div id="db-list"></div>
+      </div>
+    </section>
+
+    <section id="panel-timer" role="tabpanel" aria-labelledby="tab-timer" hidden>
+      <div class="timer-layout">
+        <div>
+          <h2 class="side-title">今日のメニュー</h2>
+          <div id="timer-menu"></div>
+        </div>
+        <aside class="timer-card" id="timer-card">
+          <p class="phase" id="phase">準備</p>
+          <p class="time" id="time" aria-live="polite">20</p>
+          <p class="round-label" id="round-label">ラウンド 1 / 8</p>
+          <div class="rounds" id="rounds" aria-hidden="true"></div>
+          <p class="spec">20秒 運動 · 10秒 休憩 · 8ラウンド</p>
+          <button class="primary go" type="button" id="go">スタート</button>
+          <button class="ghost" type="button" id="reset">最初から</button>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="picker">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="picker-title">種目を選ぶ</h2>
+        <button class="text-btn" type="button" id="close-picker">閉じる</button>
+      </div>
+      <div class="chips filters" id="picker-filters"></div>
+      <div id="picker-list"></div>
+    </div>
+  </dialog>
+
+  <script>
+    const PARTS = ["胸", "背中", "肩", "腕", "脚", "体幹", "全身"];
+    const PART_COLOR = {
+      胸: "#c4673a",
+      背中: "#2f6f8f",
+      肩: "#a6842d",
+      腕: "#7a4e86",
+      脚: "#2f7d4a",
+      体幹: "#a33b3b",
+      全身: "#3e3a34"
+    };
+    const WORK_MS = 20000;
+    const REST_MS = 10000;
+    const ROUNDS = 8;
+    const LEADS = {
+      menu: "今日やる5種目です。各種目を3セット行います。",
+      db: "種目を登録し、部位ごとに探します。",
+      timer: "今日のメニューと一緒に、タバタを使います。"
+    };
+
+    const state = {
+      exercises: [
+        { id: "sq", name: "スクワット", part: "脚", note: "膝とつま先の向きをそろえる" },
+        { id: "bp", name: "ベンチプレス", part: "胸", note: "肩甲骨を寄せて下ろす" },
+        { id: "lat", name: "ラットプルダウン", part: "背中", note: "胸を張って肘を下ろす" },
+        { id: "ohp", name: "ショルダープレス", part: "肩", note: "" },
+        { id: "plank", name: "プランク", part: "体幹", note: "腰を落とさない" },
+        { id: "rdl", name: "ルーマニアンデッドリフト", part: "脚", note: "" },
+        { id: "row", name: "ベントオーバーロウ", part: "背中", note: "" },
+        { id: "inc", name: "インクラインダンベルプレス", part: "胸", note: "" },
+        { id: "raise", name: "サイドレイズ", part: "肩", note: "" },
+        { id: "curl", name: "アームカール", part: "腕", note: "" },
+        { id: "push", name: "トライセプスプッシュダウン", part: "腕", note: "" },
+        { id: "dl", name: "デッドリフト", part: "全身", note: "" }
+      ],
+      today: ["sq", "bp", "lat", "ohp", "plank"],
+      checks: { "0-0": true, "0-1": true, "1-0": true },
+      mode: "menu",
+      dbFilter: "all",
+      pickerSlot: null,
+      pickerFilter: "all",
+      editingId: null,
+      formPart: "胸",
+      deleteArmed: null,
+      timer: { phase: "idle", round: 1, remainingMs: WORK_MS, running: false }
+    };
+
+    let endsAt = 0;
+    let timerHandle = null;
+
+    const lead = document.getElementById("lead");
+    const menuList = document.getElementById("menu-list");
+    const timerMenu = document.getElementById("timer-menu");
+    const dbList = document.getElementById("db-list");
+    const dbFilters = document.getElementById("db-filters");
+    const formParts = document.getElementById("form-parts");
+    const form = document.getElementById("exercise-form");
+    const formTitle = document.getElementById("form-title");
+    const formError = document.getElementById("form-error");
+    const saveBtn = document.getElementById("save-btn");
+    const cancelEdit = document.getElementById("cancel-edit");
+    const dbStatus = document.getElementById("db-status");
+    const nameInput = document.getElementById("name");
+    const noteInput = document.getElementById("note");
+    const picker = document.getElementById("picker");
+    const pickerTitle = document.getElementById("picker-title");
+    const pickerFilters = document.getElementById("picker-filters");
+    const pickerList = document.getElementById("picker-list");
+    const timerCard = document.getElementById("timer-card");
+    const phaseEl = document.getElementById("phase");
+    const timeEl = document.getElementById("time");
+    const roundLabel = document.getElementById("round-label");
+    const roundsEl = document.getElementById("rounds");
+    const goBtn = document.getElementById("go");
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[ch]);
+    }
+
+    function exerciseById(id) {
+      return state.exercises.find((item) => item.id === id) || null;
+    }
+
+    function doneCount() {
+      return Object.values(state.checks).filter(Boolean).length;
+    }
+
+    function chip(label, on, attrs) {
+      return `<button type="button" class="chip${on ? " is-on" : ""}" ${attrs}>${esc(label)}</button>`;
+    }
+
+    function renderChips(target, selected, attrName) {
+      const all = attrName === "data-part"
+        ? ""
+        : chip("すべて", selected === "all", `${attrName}="all"`);
+      const parts = PARTS.map((part) => chip(part, selected === part, `${attrName}="${part}"`)).join("");
+      target.innerHTML = all + parts;
+    }
+
+    function renderProgress() {
+      const done = doneCount();
+      document.getElementById("progress-count").textContent = done === 15 ? "15セット完了" : `${done} / 15`;
+      document.getElementById("progress-fill").style.width = `${(done / 15) * 100}%`;
+    }
+
+    function renderMenu() {
+      renderProgress();
+      menuList.innerHTML = state.today.map((id, index) => {
+        const exercise = exerciseById(id);
+        const order = String(index + 1).padStart(2, "0");
+        if (!exercise) {
+          return `<button type="button" class="empty-slot" data-pick="${index}"><strong>${index + 1}種目目を選ぶ</strong><span>データベースから選びます</span></button>`;
+        }
+        const sets = [0, 1, 2].map((set) => {
+          const on = Boolean(state.checks[`${index}-${set}`]);
+          return `<button type="button" class="set" data-check="${index}-${set}" aria-pressed="${on}"><span class="box"></span>セット ${set + 1}</button>`;
+        }).join("");
+        const note = exercise.note ? `<p class="note">${esc(exercise.note)}</p>` : "";
+        return `<article class="card">
+          <div class="card-top">
+            <div>
+              <p class="ord">${order}</p>
+              <h2>${esc(exercise.name)}</h2>
+              <div class="part" style="color:${PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</div>
+              ${note}
+            </div>
+            <button type="button" class="text-btn" data-pick="${index}">変更</button>
+          </div>
+          <div class="sets">${sets}</div>
+        </article>`;
+      }).join("");
+    }
+
+    function renderTimerMenu() {
+      timerMenu.innerHTML = state.today.map((id, index) => {
+        const exercise = exerciseById(id);
+        if (!exercise) {
+          return `<button type="button" class="empty-slot" data-pick="${index}"><strong>${index + 1}種目目を選ぶ</strong><span>データベースから選びます</span></button>`;
+        }
+        const checks = [0, 1, 2].map((set) => {
+          const on = Boolean(state.checks[`${index}-${set}`]);
+          return `<button type="button" class="dotcheck" data-check="${index}-${set}" aria-pressed="${on}" aria-label="${esc(exercise.name)} セット ${set + 1}">${set + 1}</button>`;
+        }).join("");
+        return `<article class="card compact">
+          <div>
+            <h2>${esc(exercise.name)}</h2>
+            <div class="part" style="color:${PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</div>
+          </div>
+          <div class="checks">${checks}</div>
+        </article>`;
+      }).join("");
+    }
+
+    function renderGroups(list, rowHtml) {
+      const groups = PARTS.map((part) => ({
+        part,
+        items: list.filter((item) => item.part === part)
+      })).filter((group) => group.items.length);
+      if (!groups.length) return `<p class="empty-copy">この部位の種目はありません</p>`;
+      return groups.map((group) => `
+        <h3 class="group-label" style="color:${PART_COLOR[group.part]}">${esc(group.part)}</h3>
+        ${group.items.map(rowHtml).join("")}
+      `).join("");
+    }
+
+    function renderDb() {
+      renderChips(dbFilters, state.dbFilter, "data-filter");
+      renderChips(formParts, state.formPart, "data-part");
+      const visible = state.dbFilter === "all"
+        ? state.exercises
+        : state.exercises.filter((item) => item.part === state.dbFilter);
+      dbList.innerHTML = renderGroups(visible, (item) => {
+        const note = item.note ? `<p>${esc(item.note)}</p>` : "";
+        const actions = state.deleteArmed === item.id
+          ? `<button type="button" class="text-btn danger" data-delete="${item.id}">削除する</button><button type="button" class="text-btn" data-cancel-delete>やめる</button>`
+          : `<button type="button" class="text-btn" data-edit="${item.id}">編集</button><button type="button" class="text-btn" data-arm="${item.id}">削除</button>`;
+        return `<article class="ex-row">
+          <i class="dot" style="background:${PART_COLOR[item.part]}"></i>
+          <div><h3>${esc(item.name)}</h3>${note}</div>
+          <div class="row-actions">${actions}</div>
+        </article>`;
+      });
+    }
+
+    function renderPicker() {
+      const slot = state.pickerSlot;
+      pickerTitle.textContent = `${slot + 1}種目目を選ぶ`;
+      renderChips(pickerFilters, state.pickerFilter, "data-pick-filter");
+      const used = new Set(state.today.filter((id, index) => id && index !== slot));
+      const visible = state.pickerFilter === "all"
+        ? state.exercises
+        : state.exercises.filter((item) => item.part === state.pickerFilter);
+      pickerList.innerHTML = renderGroups(visible, (item) => {
+        const taken = used.has(item.id);
+        return `<button type="button" class="pick" data-choose="${item.id}" ${taken ? "disabled" : ""}>
+          <span>${esc(item.name)}</span>
+          ${taken ? "<small>選択中</small>" : ""}
+        </button>`;
+      });
+    }
+
+    function renderTimer() {
+      const timer = state.timer;
+      const phaseName = { idle: "準備", work: "運動", rest: "休憩", done: "終了" }[timer.phase];
+      phaseEl.textContent = phaseName;
+      timeEl.textContent = timer.phase === "done" ? "終了" : String(Math.max(0, Math.ceil(timer.remainingMs / 1000)));
+      roundLabel.textContent = timer.phase === "done" ? "8ラウンド終わりました" : `ラウンド ${timer.round} / ${ROUNDS}`;
+      roundsEl.innerHTML = Array.from({ length: ROUNDS }, (_, index) => {
+        const passed = timer.phase === "done" || index < timer.round - 1 || (timer.phase !== "idle" && index < timer.round - 1);
+        const now = timer.phase !== "idle" && timer.phase !== "done" && index === timer.round - 1;
+        const on = timer.phase === "done" || index < timer.round - (timer.phase === "idle" ? 0 : 0);
+        const filled = timer.phase === "done" || index < timer.round - 1;
+        return `<i class="${filled ? "on" : ""} ${now ? "now" : ""}"></i>`;
+      }).join("");
+      timerCard.classList.toggle("is-work", timer.phase === "work");
+      timerCard.classList.toggle("is-rest", timer.phase === "rest");
+      timerCard.classList.toggle("is-done", timer.phase === "done");
+      timerCard.classList.toggle("is-running", timer.running);
+      goBtn.textContent = timer.running ? "一時停止" : timer.phase === "done" ? "もう一度" : "スタート";
+    }
+
+    function showMode(mode) {
+      state.mode = mode;
+      lead.textContent = LEADS[mode];
+      for (const name of ["menu", "db", "timer"]) {
+        const tab = document.getElementById(`tab-${name}`);
+        const panel = document.getElementById(`panel-${name}`);
+        const on = name === mode;
+        tab.setAttribute("aria-selected", String(on));
+panel.hidden = !on;
+    }
+    window.scrollTo(0, 0);
+  }
+
+    function resetForm() {
+      state.editingId = null;
+      state.formPart = "胸";
+      form.reset();
+      formTitle.textContent = "種目を追加";
+      saveBtn.textContent = "登録する";
+      cancelEdit.hidden = true;
+      formError.hidden = true;
+      renderChips(formParts, state.formPart, "data-part");
+    }
+
+    function startEdit(id) {
+      const exercise = exerciseById(id);
+      if (!exercise) return;
+      state.editingId = id;
+      state.formPart = exercise.part;
+      state.deleteArmed = null;
+      nameInput.value = exercise.name;
+      noteInput.value = exercise.note;
+      formTitle.textContent = "種目を編集";
+      saveBtn.textContent = "保存する";
+      cancelEdit.hidden = false;
+      formError.hidden = true;
+      dbStatus.textContent = "";
+      renderDb();
+      form.scrollIntoView({ block: "nearest" });
+      nameInput.focus();
+    }
+
+    document.querySelector(".tabs").addEventListener("click", (event) => {
+      const tab = event.target.closest("[role='tab']");
+      if (!tab) return;
+      showMode(tab.id.replace("tab-", ""));
+    });
+
+    menuList.addEventListener("click", onMenuClick);
+    timerMenu.addEventListener("click", onMenuClick);
+
+    function onMenuClick(event) {
+      const check = event.target.closest("[data-check]");
+      if (check) {
+        const key = check.dataset.check;
+        state.checks[key] = !state.checks[key];
+        renderMenu();
+        renderTimerMenu();
+        return;
+      }
+      const pick = event.target.closest("[data-pick]");
+      if (pick) openPicker(Number(pick.dataset.pick));
+    }
+
+    function openPicker(slot) {
+      state.pickerSlot = slot;
+      state.pickerFilter = "all";
+      renderPicker();
+      picker.showModal();
+    }
+
+    document.getElementById("close-picker").addEventListener("click", () => picker.close());
+    picker.addEventListener("click", (event) => {
+      if (event.target === picker) picker.close();
+    });
+
+    pickerFilters.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-pick-filter]");
+      if (!button) return;
+      state.pickerFilter = button.dataset.pickFilter;
+      renderPicker();
+    });
+
+    pickerList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-choose]");
+      if (!button || button.disabled) return;
+      const id = button.dataset.choose;
+      const slot = state.pickerSlot;
+      if (state.today[slot] !== id) {
+        state.today[slot] = id;
+        for (let set = 0; set < 3; set += 1) delete state.checks[`${slot}-${set}`];
+      }
+      picker.close();
+      renderMenu();
+      renderTimerMenu();
+    });
+
+    dbFilters.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-filter]");
+      if (!button) return;
+      state.dbFilter = button.dataset.filter;
+      renderDb();
+    });
+
+    formParts.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-part]");
+      if (!button) return;
+      state.formPart = button.dataset.part;
+      renderChips(formParts, state.formPart, "data-part");
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = nameInput.value.trim();
+      if (!name) {
+        formError.textContent = "種目名を入力してください";
+        formError.hidden = false;
+        nameInput.focus();
+        return;
+      }
+      formError.hidden = true;
+      const note = noteInput.value.trim();
+      if (state.editingId) {
+        const exercise = exerciseById(state.editingId);
+        exercise.name = name;
+        exercise.part = state.formPart;
+        exercise.note = note;
+        dbStatus.textContent = `${name}を保存しました`;
+      } else {
+        state.exercises.push({ id: `ex-${Date.now()}`, name, part: state.formPart, note });
+        dbStatus.textContent = `${name}を登録しました`;
+        if (state.dbFilter !== "all" && state.dbFilter !== state.formPart) state.dbFilter = state.formPart;
+      }
+      resetForm();
+      renderDb();
+      renderMenu();
+      renderTimerMenu();
+    });
+
+    cancelEdit.addEventListener("click", () => {
+      resetForm();
+      dbStatus.textContent = "";
+    });
+
+    dbList.addEventListener("click", (event) => {
+      const edit = event.target.closest("[data-edit]");
+      if (edit) {
+        startEdit(edit.dataset.edit);
+        return;
+      }
+      const arm = event.target.closest("[data-arm]");
+      if (arm) {
+        state.deleteArmed = arm.dataset.arm;
+        renderDb();
+        return;
+      }
+      if (event.target.closest("[data-cancel-delete]")) {
+        state.deleteArmed = null;
+        renderDb();
+        return;
+      }
+      const remove = event.target.closest("[data-delete]");
+      if (!remove) return;
+      const id = remove.dataset.delete;
+      const exercise = exerciseById(id);
+      state.exercises = state.exercises.filter((item) => item.id !== id);
+      state.today.forEach((current, index) => {
+        if (current === id) {
+          state.today[index] = null;
+          for (let set = 0; set < 3; set += 1) delete state.checks[`${index}-${set}`];
+        }
+      });
+      state.deleteArmed = null;
+      if (state.editingId === id) resetForm();
+      dbStatus.textContent = exercise ? `${exercise.name}を削除しました` : "";
+      renderDb();
+      renderMenu();
+      renderTimerMenu();
+    });
+
+    function stopTimer() {
+      clearInterval(timerHandle);
+      timerHandle = null;
+      state.timer.running = false;
+    }
+
+    function advancePhase() {
+      const timer = state.timer;
+      if (timer.phase === "work") {
+        timer.phase = "rest";
+        timer.remainingMs = REST_MS;
+        endsAt = Date.now() + REST_MS;
+        return;
+      }
+      if (timer.round >= ROUNDS) {
+        timer.phase = "done";
+        timer.remainingMs = 0;
+        stopTimer();
+        return;
+      }
+      timer.round += 1;
+      timer.phase = "work";
+      timer.remainingMs = WORK_MS;
+      endsAt = Date.now() + WORK_MS;
+    }
+
+    function tick() {
+      state.timer.remainingMs = Math.max(0, endsAt - Date.now());
+      if (state.timer.remainingMs <= 0) advancePhase();
+      renderTimer();
+    }
+
+    goBtn.addEventListener("click", () => {
+      const timer = state.timer;
+      if (timer.running) {
+        timer.remainingMs = Math.max(0, endsAt - Date.now());
+        stopTimer();
+        renderTimer();
+        return;
+      }
+      if (timer.phase === "done" || timer.phase === "idle") {
+        timer.phase = "work";
+        timer.round = 1;
+        timer.remainingMs = WORK_MS;
+      }
+      timer.running = true;
+      endsAt = Date.now() + timer.remainingMs;
+      clearInterval(timerHandle);
+      timerHandle = setInterval(tick, 200);
+      renderTimer();
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      stopTimer();
+      state.timer.phase = "idle";
+      state.timer.round = 1;
+      state.timer.remainingMs = WORK_MS;
+      renderTimer();
+    });
+
+    renderChips(formParts, state.formPart, "data-part");
+    renderMenu();
+    renderTimerMenu();
+    renderDb();
+    renderTimer();
+    showMode("menu");
+  </script>
+</body>
+</html>
