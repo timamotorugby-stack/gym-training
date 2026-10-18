@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="トレーニング">
+  <meta name="theme-color" content="#f3f0e8">
+  <title>トレーニング</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon-192.png" sizes="192x192">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1b19;
+      --muted: #6f6a62;
+      --paper: #f3f0e8;
+      --card: #fffcf7;
+      --line: #e3ddd2;
+      --track: #e6e0d4;
+      --green: #1f6b4a;
+      --green-soft: #e5f2eb;
+      --blue: #1d4e89;
+      --blue-soft: #e6eef8;
+      --danger: #9d3b32;
+      --shadow: 0 1px 2px rgba(28, 27, 25, 0.05);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    .wrap {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      padding-top: env(safe-area-inset-top);
+      background: rgba(243, 240, 232, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(227, 221, 210, 0.9);
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px 24px;
+      padding: 16px 0;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .tabs {
+      display: flex;
+      width: min(100%, 420px);
+      padding: 4px;
+      background: var(--track);
+      border-radius: 14px;
+    }
+
+    .tabs button {
+      flex: 1;
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #5c574f;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .tabs button[aria-selected="true"] {
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    main { padding: 8px 0 calc(72px + env(safe-area-inset-bottom)); }
+
+    .lead {
+      margin: 18px 0 20px;
+      color: var(--muted);
+    }
+
+    .narrow { width: min(720px, 100%); }
+
+    .progress {
+      margin-bottom: 16px;
+    }
+
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .bar {
+      height: 6px;
+      border-radius: 99px;
+      background: var(--track);
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--green);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px 16px 12px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .ord {
+      margin: 0;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #9a948a;
+    }
+
+    .card h2 {
+      margin: 2px 0 0;
+      font-size: 1.35rem;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .part {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .part i {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      display: block;
+    }
+
+    .note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .text-btn {
+      border: 0;
+      background: transparent;
+      min-height: 40px;
+      padding: 0 4px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .text-btn:hover { color: var(--ink); }
+
+    .sets { margin-top: 12px; display: grid; gap: 6px; }
+
+    .set {
+      width: 100%;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 12px;
+      background: #f6f3ec;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .box {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #c9c2b4;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .set[aria-pressed="true"] {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .set[aria-pressed="true"] .box,
+    .session-row[aria-pressed="true"] .box {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .set[aria-pressed="true"] .box::after,
+    .session-row[aria-pressed="true"] .box::after {
+      content: "";
+      width: 6px;
+      height: 10px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: translateY(-1px) rotate(45deg);
+    }
+
+    .empty-slot {
+      width: 100%;
+      min-height: 112px;
+      border: 1.5px dashed #cfc6b6;
+      border-radius: 18px;
+      background: transparent;
+      margin-bottom: 12px;
+      text-align: left;
+      padding: 16px;
+    }
+
+    .empty-slot strong {
+      display: block;
+      font-size: 1.15rem;
+    }
+
+    .empty-slot span {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .panel-card, form, .timer-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    form { padding: 18px; }
+
+    form h2, .side-title {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    input[type="text"] {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    fieldset {
+      border: 0;
+      margin: 0 0 14px;
+      padding: 0;
+    }
+
+    legend {
+      padding: 0;
+      margin-bottom: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .chip {
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid #ddd6c8;
+      background: #fff;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .chip.is-on {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #f4f1ea;
+    }
+
+    .form-error {
+      margin: 0 0 12px;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .form-actions { display: flex; gap: 8px; align-items: center; }
+
+    .primary {
+      min-height: 48px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--ink);
+      color: #f4f1ea;
+      font-weight: 700;
+    }
+
+    .status {
+      min-height: 1.4em;
+      margin: 12px 0;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .filters { margin: 4px 0 8px; }
+
+    .group-label {
+      margin: 18px 0 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .ex-row {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .ex-row h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    .ex-row p { margin: 2px 0 0; color: var(--muted); font-size: 0.88rem; }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+    }
+
+    .row-actions { display: flex; gap: 4px; }
+
+    .danger { color: var(--danger); }
+
+    .empty-copy {
+      margin: 20px 0;
+      color: var(--muted);
+    }
+
+    .timer-layout {
+      display: grid;
+      gap: 20px;
+    }
+
+    .timer-card {
+      padding: 28px 22px 22px;
+      text-align: center;
+    }
+
+    .phase {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+    }
+
+    .time {
+      margin: 8px 0 0;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-size: clamp(96px, 16vw, 132px);
+      font-weight: 500;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .round-label {
+      margin: 10px 0 0;
+      font-weight: 700;
+    }
+
+    .rounds {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 14px 0 8px;
+    }
+
+    .rounds i {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background: #ddd6c8;
+      display: block;
+    }
+
+    .rounds i.on { background: var(--ink); }
+    .rounds i.now { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    .spec {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .go {
+      width: 100%;
+      min-height: 56px;
+      border-radius: 14px;
+    }
+
+    .timer-card.is-running .go {
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid var(--ink);
+    }
+
+    .timer-card.is-work { background: var(--green-soft); border-color: #cfe3d8; }
+    .timer-card.is-work .phase, .timer-card.is-work .time { color: var(--green); }
+    .timer-card.is-rest { background: var(--blue-soft); border-color: #d3e0f0; }
+    .timer-card.is-rest .phase, .timer-card.is-rest .time { color: var(--blue); }
+    .timer-card.is-done .time { font-size: clamp(64px, 10vw, 84px); letter-spacing: 0; }
+
+    .ghost {
+      margin-top: 8px;
+      min-height: 44px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .compact {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 14px;
+    }
+
+    .compact h2 { font-size: 1.08rem; }
+
+    .checks { display: flex; gap: 8px; }
+
+    .dotcheck {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 0;
+      background: #f6f3ec;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-weight: 600;
+    }
+
+    .dotcheck[aria-pressed="true"] {
+      background: var(--green);
+      color: white;
+    }
+
+    dialog {
+      border: 0;
+      padding: 0;
+      width: min(520px, calc(100vw - 32px));
+      max-height: min(740px, calc(100vh - 40px));
+      border-radius: 20px;
+      color: var(--ink);
+      box-shadow: 0 24px 70px rgba(28, 27, 25, 0.24);
+    }
+
+    dialog::backdrop { background: rgba(28, 27, 25, 0.46); }
+
+    .dialog-body {
+      padding: 18px 18px 8px;
+      overflow: auto;
+      max-height: min(740px, calc(100vh - 40px));
+    }
+
+    .dialog-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pick {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      padding: 14px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .pick:disabled { color: #a39e94; cursor: default; }
+    .pick small { color: var(--muted); font-weight: 700; }
+
+    .shape {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .shape button {
+      min-height: 68px;
+      padding: 8px 6px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .shape strong, .shape span { display: block; }
+    .shape strong { font-size: 0.92rem; line-height: 1.3; }
+    .shape span { margin-top: 2px; color: var(--muted); font-size: 0.72rem; font-weight: 500; }
+
+    .shape button[aria-pressed="true"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #f4f1ea;
+    }
+
+    .shape button[aria-pressed="true"] span { color: #d9d3c6; }
+
+    .set-heading {
+      margin: 20px 0 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .timer-settings {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+      margin: 4px 0 16px;
+      text-align: left;
+    }
+
+    .timer-settings label { margin: 0; }
+
+    input[type="number"] {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 48px;
+      padding: 8px 4px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .add-end {
+      width: 100%;
+      min-height: 56px;
+      margin-top: 4px;
+      border: 1.5px dashed #cfc6b6;
+      border-radius: 18px;
+      background: transparent;
+      font-weight: 700;
+    }
+
+    .session-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 4px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .session-row {
+      width: 100%;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      text-align: left;
+      box-shadow: var(--shadow);
+    }
+
+    .session-row strong { display: block; font-size: 1.05rem; line-height: 1.3; }
+    .session-row .part { margin-top: 2px; }
+
+    .session-row[aria-pressed="true"] {
+      background: var(--green-soft);
+      border-color: #cfe3d8;
+      color: var(--green);
+    }
+
+    .session-row[aria-pressed="true"] .part { color: var(--green); }
+
+    @media (min-width: 768px) {
+      .timer-layout {
+        grid-template-columns: minmax(0, 1fr) 320px;
+        align-items: start;
+      }
+      .timer-card {
+        position: sticky;
+        top: calc(92px + env(safe-area-inset-top));
+      }
+    }
+
+    @media (min-width: 1080px) {
+      .wrap { width: min(1120px, calc(100% - 48px)); }
+      .timer-layout { grid-template-columns: minmax(0, 1fr) 380px; }
+    }
+
+    @media (max-width: 767px) {
+      .timer-card { order: -1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap head">
+      <h1>トレーニング</h1>
+      <div class="tabs" role="tablist" aria-label="モード">
+        <button type="button" role="tab" id="tab-menu" aria-controls="panel-menu" aria-selected="true">メニュー</button>
+        <button type="button" role="tab" id="tab-db" aria-controls="panel-db" aria-selected="false">データベース</button>
+        <button type="button" role="tab" id="tab-timer" aria-controls="panel-timer" aria-selected="false">タイマー</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="lead" id="lead">同じ5種目を、それぞれ3セット行います。</p>
+
+    <section id="panel-menu" role="tabpanel" aria-labelledby="tab-menu">
+      <div class="narrow">
+        <div class="shape" id="shape-switch" role="group" aria-label="メニューの形">
+          <button type="button" data-shape="same" aria-pressed="true"><strong>同じ5種目</strong><span>それぞれ3セット</span></button>
+          <button type="button" data-shape="ten" aria-pressed="false"><strong>10種目</strong><span>違う5種目×2</span></button>
+          <button type="button" data-shape="fifteen" aria-pressed="false"><strong>15種目</strong><span>違う5種目×3</span></button>
+        </div>
+        <p class="form-error" id="menu-status" role="status" hidden></p>
+        <div class="progress">
+          <div class="progress-top">
+            <span id="progress-label">セット</span>
+            <span id="progress-count">0 / 15</span>
+          </div>
+          <div class="bar" aria-hidden="true"><span id="progress-fill"></span></div>
+        </div>
+        <div id="menu-list"></div>
+      </div>
+    </section>
+
+    <section id="panel-db" role="tabpanel" aria-labelledby="tab-db" hidden>
+      <div class="narrow">
+        <form id="exercise-form">
+          <h2 id="form-title">種目を追加</h2>
+          <label>種目名
+            <input type="text" id="name" name="name" maxlength="40" placeholder="スクワット" autocomplete="off">
+          </label>
+          <fieldset>
+            <legend>部位</legend>
+            <div class="chips" id="form-parts"></div>
+          </fieldset>
+          <label>メモ
+            <input type="text" id="note" name="note" maxlength="80" placeholder="肩甲骨を寄せる、など" autocomplete="off">
+          </label>
+          <p class="form-error" id="form-error" hidden></p>
+          <div class="form-actions">
+            <button class="primary" type="submit" id="save-btn">登録する</button>
+            <button class="text-btn" type="button" id="cancel-edit" hidden>キャンセル</button>
+          </div>
+        </form>
+        <p class="status" id="db-status" role="status"></p>
+        <div class="chips filters" id="db-filters"></div>
+        <div id="db-list"></div>
+      </div>
+    </section>
+
+    <section id="panel-timer" role="tabpanel" aria-labelledby="tab-timer" hidden>
+      <p class="form-error" id="timer-status" role="status" hidden></p>
+      <div class="timer-layout">
+        <div>
+          <div class="progress">
+            <div class="progress-top">
+              <span>セッション</span>
+              <span id="session-count">0 / 0</span>
+            </div>
+          </div>
+          <div id="timer-menu"></div>
+          <button class="add-end" type="button" id="add-session">末尾に追加</button>
+        </div>
+        <aside class="timer-card" id="timer-card">
+          <p class="phase" id="phase">準備</p>
+          <p class="time" id="time" aria-live="polite">20</p>
+          <p class="round-label" id="round-label">セット 1 / 8</p>
+          <div class="rounds" id="rounds" aria-hidden="true"></div>
+          <div class="timer-settings">
+            <label>ワーク
+              <input id="work-sec" type="number" min="1" max="600" inputmode="numeric" value="20">
+            </label>
+            <label>レスト
+              <input id="rest-sec" type="number" min="0" max="600" inputmode="numeric" value="10">
+            </label>
+            <label>セット
+              <input id="round-count" type="number" min="1" max="99" inputmode="numeric" value="8">
+            </label>
+          </div>
+          <button class="primary go" type="button" id="go">スタート</button>
+          <button class="ghost" type="button" id="reset">最初から</button>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="picker">
+    <div class="dialog-body">
+      <div class="dialog-head">
+        <h2 id="picker-title">種目を選ぶ</h2>
+        <button class="text-btn" type="button" id="close-picker">閉じる</button>
+      </div>
+      <div class="chips filters" id="picker-filters"></div>
+      <div id="picker-list"></div>
+    </div>
+  </dialog>
+
+  <script>
+    const PARTS = ["胸", "背中", "肩", "腕", "脚", "体幹", "全身"];
+    const PART_COLOR = {
+      胸: "#c4673a",
+      背中: "#2f6f8f",
+      肩: "#a6842d",
+      腕: "#7a4e86",
+      脚: "#2f7d4a",
+      体幹: "#a33b3b",
+      全身: "#3e3a34"
+    };
+    const SHAPES = {
+      same: { count: 5, setsEach: 3, groups: 1, lead: "同じ5種目を、それぞれ3セット行います。" },
+      ten: { count: 10, setsEach: 1, groups: 2, lead: "違う5種目を、2セット行います。" },
+      fifteen: { count: 15, setsEach: 1, groups: 3, lead: "違う5種目を、3セット行います。" }
+    };
+    const LEADS = {
+      db: "種目を登録し、部位ごとに探します。",
+      timer: "ワークとレストを決めて、種目を末尾に足していきます。"
+    };
+    const EXERCISE_KEY = "gym-training-exercises";
+    const MENU_KEY = "gym-training-menu";
+    const TIMER_KEY = "gym-training-timer";
+    let exercisesReadable = true;
+    let exercisesRepaired = false;
+    let exerciseSeq = 0;
+    let sessionSeq = 0;
+
+    function newExerciseId() {
+      exerciseSeq += 1;
+      return `ex-${Date.now().toString(36)}-${exerciseSeq.toString(36)}`;
+    }
+
+    function loadExercises() {
+      try {
+        const raw = localStorage.getItem(EXERCISE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        const seen = new Set();
+        return parsed.flatMap((item) => {
+          if (!item || typeof item.id !== "string" || !item.id) return [];
+          if (typeof item.name !== "string" || !item.name.trim()) return [];
+          if (!PARTS.includes(item.part)) return [];
+          if (item.note !== undefined && typeof item.note !== "string") return [];
+          let id = item.id;
+          if (seen.has(id)) {
+            id = newExerciseId();
+            exercisesRepaired = true;
+          }
+          seen.add(id);
+          return [{
+            id,
+            name: item.name.trim().slice(0, 40),
+            part: item.part,
+            note: String(item.note || "").trim().slice(0, 80)
+          }];
+        });
+      } catch (error) {
+        exercisesReadable = false;
+        return [];
+      }
+    }
+
+    function saveExercises() {
+      try {
+        localStorage.setItem(EXERCISE_KEY, JSON.stringify(state.exercises));
+        return true;
+      } catch (error) {
+        dbStatus.textContent = "保存できませんでした";
+        return false;
+      }
+    }
+
+    function emptyMenu(count) {
+      return Array.from({ length: count }, () => null);
+    }
+
+    function checkSlot(key) {
+      const same = /^same-(\d+)-(\d+)$/.exec(key);
+      if (same) {
+        const index = Number(same[1]);
+        const set = Number(same[2]);
+        if (index < SHAPES.same.count && set < SHAPES.same.setsEach) return { shape: "same", index };
+        return null;
+      }
+      const grouped = /^(ten|fifteen)-(\d+)$/.exec(key);
+      if (!grouped) return null;
+      const shape = grouped[1];
+      const index = Number(grouped[2]);
+      if (index < SHAPES[shape].count) return { shape, index };
+      return null;
+    }
+
+    function loadMenu(exercises) {
+      const blank = {
+        menuShape: "same",
+        menus: {
+          same: emptyMenu(SHAPES.same.count),
+          ten: emptyMenu(SHAPES.ten.count),
+          fifteen: emptyMenu(SHAPES.fifteen.count)
+        },
+        checks: {},
+        repaired: false
+      };
+      let stored;
+      try {
+        const raw = localStorage.getItem(MENU_KEY);
+        if (!raw) return blank;
+        stored = JSON.parse(raw);
+      } catch (error) {
+        return blank;
+      }
+      if (!stored || typeof stored !== "object" || Array.isArray(stored)) {
+        return { ...blank, repaired: true };
+      }
+
+      const menuShape = stored.menuShape && SHAPES[stored.menuShape] ? stored.menuShape : "same";
+      const known = new Set(exercises.map((item) => item.id));
+      const menus = {};
+      for (const [shape, spec] of Object.entries(SHAPES)) {
+        const source = stored.menus && Array.isArray(stored.menus[shape]) ? stored.menus[shape] : [];
+        const seen = new Set();
+        menus[shape] = Array.from({ length: spec.count }, (_, index) => {
+          const id = source[index];
+          if (typeof id !== "string" || !id || seen.has(id)) return null;
+          if (exercisesReadable && !known.has(id)) return null;
+          seen.add(id);
+          return id;
+        });
+      }
+
+      const checks = {};
+      const sourceChecks = stored.checks && typeof stored.checks === "object" && !Array.isArray(stored.checks)
+        ? stored.checks
+        : {};
+      for (const [key, on] of Object.entries(sourceChecks)) {
+        if (on !== true) continue;
+        const slot = checkSlot(key);
+        if (!slot || !menus[slot.shape][slot.index]) continue;
+        checks[key] = true;
+      }
+
+      const normalized = JSON.stringify({ menuShape, menus, checks });
+      const original = JSON.stringify({
+        menuShape: stored.menuShape,
+        menus: stored.menus,
+        checks: stored.checks
+      });
+      return { menuShape, menus, checks, repaired: normalized !== original };
+    }
+
+    function newSessionKey() {
+      sessionSeq += 1;
+      return `s-${Date.now().toString(36)}-${sessionSeq.toString(36)}`;
+    }
+
+    function loadTimer(exercises) {
+      const blank = { work: 20, rest: 10, rounds: 8, session: [], repaired: false };
+      let stored;
+      try {
+        const raw = localStorage.getItem(TIMER_KEY);
+        if (!raw) return blank;
+        stored = JSON.parse(raw);
+      } catch (error) {
+        return { ...blank, repaired: true };
+      }
+      if (!stored || typeof stored !== "object" || Array.isArray(stored)) {
+        return { ...blank, repaired: true };
+      }
+
+      const work = readStoredNumber(stored.work, 1, 600, 20);
+      const rest = readStoredNumber(stored.rest, 0, 600, 10);
+      const rounds = readStoredNumber(stored.rounds, 1, 99, 8);
+      const known = new Set(exercises.map((item) => item.id));
+      const source = Array.isArray(stored.session) ? stored.session : [];
+      const seen = new Set();
+      const session = [];
+      for (const item of source) {
+        if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+        if (typeof item.exerciseId !== "string" || !item.exerciseId) continue;
+        if (exercisesReadable && !known.has(item.exerciseId)) continue;
+        let key = typeof item.key === "string" && item.key ? item.key : newSessionKey();
+        if (seen.has(key)) key = newSessionKey();
+        seen.add(key);
+        session.push({ key, exerciseId: item.exerciseId, done: item.done === true });
+      }
+
+      const normalized = JSON.stringify({ work, rest, rounds, session });
+      const original = JSON.stringify({
+        work: stored.work,
+        rest: stored.rest,
+        rounds: stored.rounds,
+        session: stored.session
+      });
+      return { work, rest, rounds, session, repaired: normalized !== original };
+    }
+
+    function readStoredNumber(value, min, max, fallback) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return fallback;
+      return Math.min(max, Math.max(min, Math.round(number)));
+    }
+
+    function saveTimer() {
+      const timerStatus = document.getElementById("timer-status");
+      try {
+        localStorage.setItem(TIMER_KEY, JSON.stringify({
+          work: readNumber(workInput, 1, 600, 20),
+          rest: readNumber(restInput, 0, 600, 10),
+          rounds: readNumber(roundInput, 1, 99, 8),
+          session: state.session.map((item) => ({
+            key: item.key,
+            exerciseId: item.exerciseId,
+            done: item.done === true
+          }))
+        }));
+        if (timerStatus) {
+          timerStatus.textContent = "";
+          timerStatus.hidden = true;
+        }
+      } catch (error) {
+        if (timerStatus) {
+          timerStatus.textContent = "保存できませんでした";
+          timerStatus.hidden = false;
+        }
+      }
+    }
+
+    function saveMenu() {
+      const menuStatus = document.getElementById("menu-status");
+      const checks = {};
+      for (const [key, on] of Object.entries(state.checks)) {
+        if (on === true) checks[key] = true;
+      }
+      try {
+        localStorage.setItem(MENU_KEY, JSON.stringify({
+          menuShape: state.menuShape,
+          menus: state.menus,
+          checks
+        }));
+        if (menuStatus) {
+          menuStatus.textContent = "";
+          menuStatus.hidden = true;
+        }
+      } catch (error) {
+        if (menuStatus) {
+          menuStatus.textContent = "保存できませんでした";
+          menuStatus.hidden = false;
+        }
+      }
+    }
+
+    const loadedExercises = loadExercises();
+    const loadedMenu = loadMenu(loadedExercises);
+    const loadedTimer = loadTimer(loadedExercises);
+
+    const state = {
+      exercises: loadedExercises,
+      menuShape: loadedMenu.menuShape,
+      menus: loadedMenu.menus,
+      checks: loadedMenu.checks,
+      session: loadedTimer.session,
+      mode: "menu",
+      dbFilter: "all",
+      pickerMode: "menu",
+      pickerSlot: null,
+      pickerFilter: "all",
+      editingId: null,
+      formPart: "胸",
+      deleteArmed: null,
+      timer: { phase: "idle", round: 1, remainingMs: loadedTimer.work * 1000, running: false }
+    };
+
+    let endsAt = 0;
+    let timerHandle = null;
+
+    const lead = document.getElementById("lead");
+    const menuList = document.getElementById("menu-list");
+    const timerMenu = document.getElementById("timer-menu");
+    const dbList = document.getElementById("db-list");
+    const dbFilters = document.getElementById("db-filters");
+    const formParts = document.getElementById("form-parts");
+    const form = document.getElementById("exercise-form");
+    const formTitle = document.getElementById("form-title");
+    const formError = document.getElementById("form-error");
+    const saveBtn = document.getElementById("save-btn");
+    const cancelEdit = document.getElementById("cancel-edit");
+    const dbStatus = document.getElementById("db-status");
+    const nameInput = document.getElementById("name");
+    const noteInput = document.getElementById("note");
+    const picker = document.getElementById("picker");
+    const pickerTitle = document.getElementById("picker-title");
+    const pickerFilters = document.getElementById("picker-filters");
+    const pickerList = document.getElementById("picker-list");
+    const timerCard = document.getElementById("timer-card");
+    const phaseEl = document.getElementById("phase");
+    const timeEl = document.getElementById("time");
+    const roundLabel = document.getElementById("round-label");
+    const roundsEl = document.getElementById("rounds");
+    const goBtn = document.getElementById("go");
+    const workInput = document.getElementById("work-sec");
+    const restInput = document.getElementById("rest-sec");
+    const roundInput = document.getElementById("round-count");
+    const progressLabel = document.getElementById("progress-label");
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[ch]);
+    }
+
+    function exerciseById(id) {
+      return state.exercises.find((item) => item.id === id) || null;
+    }
+
+    function currentMenu() {
+      return state.menus[state.menuShape];
+    }
+
+    function shapeOf() {
+      return SHAPES[state.menuShape];
+    }
+
+    function readNumber(input, min, max, fallback) {
+      const value = Number(input.value);
+      if (!Number.isFinite(value)) return fallback;
+      return Math.min(max, Math.max(min, Math.round(value)));
+    }
+
+    function workMs() { return readNumber(workInput, 1, 600, 20) * 1000; }
+    function restMs() { return readNumber(restInput, 0, 600, 10) * 1000; }
+    function roundTotal() { return readNumber(roundInput, 1, 99, 8); }
+
+    function checkKey(shape, index, set) {
+      return set === undefined ? `${shape}-${index}` : `${shape}-${index}-${set}`;
+    }
+
+    function clearSlotChecks(shape, index) {
+      const sets = SHAPES[shape].setsEach;
+      if (sets === 1) delete state.checks[checkKey(shape, index)];
+      else for (let set = 0; set < sets; set += 1) delete state.checks[checkKey(shape, index, set)];
+    }
+
+    function chip(label, on, attrs) {
+      return `<button type="button" class="chip${on ? " is-on" : ""}" ${attrs}>${esc(label)}</button>`;
+    }
+
+    function renderChips(target, selected, attrName) {
+      const all = attrName === "data-part"
+        ? ""
+        : chip("すべて", selected === "all", `${attrName}="all"`);
+      const parts = PARTS.map((part) => chip(part, selected === part, `${attrName}="${part}"`)).join("");
+      target.innerHTML = all + parts;
+    }
+
+    function renderProgress() {
+      const shape = shapeOf();
+      const prefix = `${state.menuShape}-`;
+      const done = Object.entries(state.checks).filter(([key, on]) => on && key.startsWith(prefix)).length;
+      const total = shape.count * shape.setsEach;
+      const unit = shape.setsEach === 1 ? "種目" : "セット";
+      progressLabel.textContent = unit;
+      document.getElementById("progress-count").textContent = done === total ? `${total}${unit}完了` : `${done} / ${total}`;
+      document.getElementById("progress-fill").style.width = `${total ? (done / total) * 100 : 0}%`;
+    }
+
+    function menuCard(id, index) {
+      const exercise = exerciseById(id);
+      const order = String(index + 1).padStart(2, "0");
+      if (!exercise) {
+        return `<button type="button" class="empty-slot" data-pick="${index}"><strong>${index + 1}種目目を選ぶ</strong><span>データベースから選びます</span></button>`;
+      }
+      const setsEach = shapeOf().setsEach;
+      const sets = Array.from({ length: setsEach }, (_, set) => {
+        const key = setsEach === 1 ? checkKey(state.menuShape, index) : checkKey(state.menuShape, index, set);
+        const on = Boolean(state.checks[key]);
+        const label = setsEach === 1 ? "終了" : `セット ${set + 1}`;
+        return `<button type="button" class="set" data-check="${key}" aria-pressed="${on}"><span class="box"></span>${label}</button>`;
+      }).join("");
+      const note = exercise.note ? `<p class="note">${esc(exercise.note)}</p>` : "";
+      return `<article class="card">
+        <div class="card-top">
+          <div>
+            <p class="ord">${order}</p>
+            <h2>${esc(exercise.name)}</h2>
+            <div class="part" style="color:${PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</div>
+            ${note}
+          </div>
+          <button type="button" class="text-btn" data-pick="${index}">変更</button>
+        </div>
+        <div class="sets">${sets}</div>
+      </article>`;
+    }
+
+    function renderMenu() {
+      renderProgress();
+      document.querySelectorAll("#shape-switch button").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.shape === state.menuShape));
+      });
+      const list = currentMenu();
+      const groups = shapeOf().groups;
+      if (groups === 1) {
+        menuList.innerHTML = list.map((id, index) => menuCard(id, index)).join("");
+        return;
+      }
+      menuList.innerHTML = Array.from({ length: groups }, (_, group) => {
+        const cards = list.slice(group * 5, group * 5 + 5).map((id, offset) => menuCard(id, group * 5 + offset)).join("");
+        return `<h3 class="set-heading">${group + 1}セット目</h3>${cards}`;
+      }).join("");
+    }
+
+    function renderSession() {
+      const done = state.session.filter((item) => item.done).length;
+      document.getElementById("session-count").textContent = state.session.length
+        ? `${done} / ${state.session.length}`
+        : "0";
+      timerMenu.innerHTML = state.session.map((item) => {
+        const exercise = exerciseById(item.exerciseId);
+        if (!exercise) return "";
+        return `<div class="session-item">
+          <button type="button" class="session-row" data-session="${esc(item.key)}" aria-pressed="${item.done}">
+            <span class="box"></span>
+            <span>
+              <strong>${esc(exercise.name)}</strong>
+              <span class="part" style="color:${item.done ? "inherit" : PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</span>
+            </span>
+          </button>
+          <button type="button" class="text-btn" data-remove="${esc(item.key)}">外す</button>
+        </div>`;
+      }).join("") || `<p class="empty-copy">種目を末尾に追加すると、ここに並びます。</p>`;
+    }
+
+    function renderGroups(list, rowHtml) {
+      const groups = PARTS.map((part) => ({
+        part,
+        items: list.filter((item) => item.part === part)
+      })).filter((group) => group.items.length);
+      if (!groups.length) {
+        const message = state.exercises.length ? "この部位の種目はありません" : "種目はまだありません";
+        return `<p class="empty-copy">${message}</p>`;
+      }
+      return groups.map((group) => `
+        <h3 class="group-label" style="color:${PART_COLOR[group.part]}">${esc(group.part)}</h3>
+        ${group.items.map(rowHtml).join("")}
+      `).join("");
+    }
+
+    function renderDb() {
+      renderChips(dbFilters, state.dbFilter, "data-filter");
+      renderChips(formParts, state.formPart, "data-part");
+      const visible = state.dbFilter === "all"
+        ? state.exercises
+        : state.exercises.filter((item) => item.part === state.dbFilter);
+      dbList.innerHTML = renderGroups(visible, (item) => {
+        const note = item.note ? `<p>${esc(item.note)}</p>` : "";
+        const actions = state.deleteArmed === item.id
+          ? `<button type="button" class="text-btn danger" data-delete="${item.id}">削除する</button><button type="button" class="text-btn" data-cancel-delete>やめる</button>`
+          : `<button type="button" class="text-btn" data-edit="${item.id}">編集</button><button type="button" class="text-btn" data-arm="${item.id}">削除</button>`;
+        return `<article class="ex-row">
+          <i class="dot" style="background:${PART_COLOR[item.part]}"></i>
+          <div><h3>${esc(item.name)}</h3>${note}</div>
+          <div class="row-actions">${actions}</div>
+        </article>`;
+      });
+    }
+
+    function renderPicker() {
+      const appending = state.pickerMode === "timer";
+      pickerTitle.textContent = appending ? "末尾に追加" : `${state.pickerSlot + 1}種目目を選ぶ`;
+      renderChips(pickerFilters, state.pickerFilter, "data-pick-filter");
+      const used = appending
+        ? new Set()
+        : new Set(currentMenu().filter((id, index) => id && index !== state.pickerSlot));
+      const visible = state.pickerFilter === "all"
+        ? state.exercises
+        : state.exercises.filter((item) => item.part === state.pickerFilter);
+      pickerList.innerHTML = renderGroups(visible, (item) => {
+        const taken = used.has(item.id);
+        return `<button type="button" class="pick" data-choose="${item.id}" ${taken ? "disabled" : ""}>
+          <span>${esc(item.name)}</span>
+          ${taken ? "<small>選択中</small>" : ""}
+        </button>`;
+      });
+    }
+
+    function renderTimer() {
+      const timer = state.timer;
+      const total = roundTotal();
+      const phaseName = { idle: "準備", work: "運動", rest: "休憩", done: "終了" }[timer.phase];
+      phaseEl.textContent = phaseName;
+      timeEl.textContent = timer.phase === "done" ? "終了" : String(Math.max(0, Math.ceil(timer.remainingMs / 1000)));
+      roundLabel.textContent = timer.phase === "done" ? `${total}セット終わりました` : `セット ${Math.min(timer.round, total)} / ${total}`;
+      roundsEl.hidden = total > 12;
+      if (!roundsEl.hidden) {
+        roundsEl.innerHTML = Array.from({ length: total }, (_, index) => {
+          const now = timer.phase !== "idle" && timer.phase !== "done" && index === timer.round - 1;
+          const filled = timer.phase === "done" || index < timer.round - 1;
+          return `<i class="${filled ? "on" : ""} ${now ? "now" : ""}"></i>`;
+        }).join("");
+      }
+      timerCard.classList.toggle("is-work", timer.phase === "work");
+      timerCard.classList.toggle("is-rest", timer.phase === "rest");
+      timerCard.classList.toggle("is-done", timer.phase === "done");
+      timerCard.classList.toggle("is-running", timer.running);
+      goBtn.textContent = timer.running ? "一時停止" : timer.phase === "done" ? "もう一度" : "スタート";
+    }
+
+    function showMode(mode) {
+      state.mode = mode;
+      lead.textContent = mode === "menu" ? shapeOf().lead : LEADS[mode];
+      for (const name of ["menu", "db", "timer"]) {
+        const tab = document.getElementById(`tab-${name}`);
+        const panel = document.getElementById(`panel-${name}`);
+        const on = name === mode;
+        tab.setAttribute("aria-selected", String(on));
+        panel.hidden = !on;
+      }
+      window.scrollTo(0, 0);
+    }
+
+    function resetForm() {
+      state.editingId = null;
+      state.formPart = "胸";
+      form.reset();
+      formTitle.textContent = "種目を追加";
+      saveBtn.textContent = "登録する";
+      cancelEdit.hidden = true;
+      formError.hidden = true;
+      renderChips(formParts, state.formPart, "data-part");
+    }
+
+    function startEdit(id) {
+      const exercise = exerciseById(id);
+      if (!exercise) return;
+      state.editingId = id;
+      state.formPart = exercise.part;
+      state.deleteArmed = null;
+      nameInput.value = exercise.name;
+      noteInput.value = exercise.note;
+      formTitle.textContent = "種目を編集";
+      saveBtn.textContent = "保存する";
+      cancelEdit.hidden = false;
+      formError.hidden = true;
+      dbStatus.textContent = "";
+      renderDb();
+      form.scrollIntoView({ block: "nearest" });
+      nameInput.focus();
+    }
+
+    document.querySelector(".tabs").addEventListener("click", (event) => {
+      const tab = event.target.closest("[role='tab']");
+      if (!tab) return;
+      showMode(tab.id.replace("tab-", ""));
+    });
+
+    document.getElementById("shape-switch").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-shape]");
+      if (!button || button.dataset.shape === state.menuShape) return;
+      state.menuShape = button.dataset.shape;
+      if (state.mode === "menu") lead.textContent = shapeOf().lead;
+      saveMenu();
+      renderMenu();
+    });
+
+    menuList.addEventListener("click", (event) => {
+      const check = event.target.closest("[data-check]");
+      if (check) {
+        state.checks[check.dataset.check] = !state.checks[check.dataset.check];
+        saveMenu();
+        renderMenu();
+        return;
+      }
+      const pick = event.target.closest("[data-pick]");
+      if (pick) openPicker(Number(pick.dataset.pick));
+    });
+
+    timerMenu.addEventListener("click", (event) => {
+      const remove = event.target.closest("[data-remove]");
+      if (remove) {
+        state.session = state.session.filter((item) => item.key !== remove.dataset.remove);
+        saveTimer();
+        renderSession();
+        return;
+      }
+      const row = event.target.closest("[data-session]");
+      if (!row) return;
+      const item = state.session.find((entry) => entry.key === row.dataset.session);
+      if (!item) return;
+      item.done = !item.done;
+      saveTimer();
+      renderSession();
+    });
+
+    function openPicker(slot) {
+      state.pickerMode = "menu";
+      state.pickerSlot = slot;
+      state.pickerFilter = "all";
+      renderPicker();
+      picker.showModal();
+    }
+
+    document.getElementById("add-session").addEventListener("click", () => {
+      state.pickerMode = "timer";
+      state.pickerSlot = null;
+      state.pickerFilter = "all";
+      renderPicker();
+      picker.showModal();
+    });
+
+    document.getElementById("close-picker").addEventListener("click", () => picker.close());
+    picker.addEventListener("click", (event) => {
+      if (event.target === picker) picker.close();
+    });
+
+    pickerFilters.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-pick-filter]");
+      if (!button) return;
+      state.pickerFilter = button.dataset.pickFilter;
+      renderPicker();
+    });
+
+    pickerList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-choose]");
+      if (!button || button.disabled) return;
+      const id = button.dataset.choose;
+      if (state.pickerMode === "timer") {
+        state.session.push({ key: newSessionKey(), exerciseId: id, done: false });
+        saveTimer();
+        picker.close();
+        renderSession();
+        return;
+      }
+      const slot = state.pickerSlot;
+      const list = currentMenu();
+      if (list[slot] !== id) {
+        list[slot] = id;
+        clearSlotChecks(state.menuShape, slot);
+        saveMenu();
+      }
+      picker.close();
+      renderMenu();
+    });
+
+    dbFilters.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-filter]");
+      if (!button) return;
+      state.dbFilter = button.dataset.filter;
+      renderDb();
+    });
+
+    formParts.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-part]");
+      if (!button) return;
+      state.formPart = button.dataset.part;
+      renderChips(formParts, state.formPart, "data-part");
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = nameInput.value.trim();
+      if (!name) {
+        formError.textContent = "種目名を入力してください";
+        formError.hidden = false;
+        nameInput.focus();
+        return;
+      }
+      formError.hidden = true;
+      const note = noteInput.value.trim();
+      if (state.editingId) {
+        const exercise = exerciseById(state.editingId);
+        exercise.name = name;
+        exercise.part = state.formPart;
+        exercise.note = note;
+        dbStatus.textContent = `${name}を保存しました`;
+      } else {
+        state.exercises.push({ id: newExerciseId(), name, part: state.formPart, note });
+        dbStatus.textContent = `${name}を登録しました`;
+        if (state.dbFilter !== "all" && state.dbFilter !== state.formPart) state.dbFilter = state.formPart;
+      }
+      saveExercises();
+      resetForm();
+      renderDb();
+      renderMenu();
+      renderSession();
+    });
+
+    cancelEdit.addEventListener("click", () => {
+      resetForm();
+      dbStatus.textContent = "";
+    });
+
+    dbList.addEventListener("click", (event) => {
+      const edit = event.target.closest("[data-edit]");
+      if (edit) {
+        startEdit(edit.dataset.edit);
+        return;
+      }
+      const arm = event.target.closest("[data-arm]");
+      if (arm) {
+        state.deleteArmed = arm.dataset.arm;
+        renderDb();
+        return;
+      }
+      if (event.target.closest("[data-cancel-delete]")) {
+        state.deleteArmed = null;
+        renderDb();
+        return;
+      }
+      const remove = event.target.closest("[data-delete]");
+      if (!remove) return;
+      const id = remove.dataset.delete;
+      const exercise = exerciseById(id);
+      state.exercises = state.exercises.filter((item) => item.id !== id);
+      for (const [shape, list] of Object.entries(state.menus)) {
+        list.forEach((current, index) => {
+          if (current === id) {
+            list[index] = null;
+            clearSlotChecks(shape, index);
+          }
+        });
+      }
+      state.session = state.session.filter((item) => item.exerciseId !== id);
+      state.deleteArmed = null;
+      if (state.editingId === id) resetForm();
+      dbStatus.textContent = exercise ? `${exercise.name}を削除しました` : "";
+      if (saveExercises()) {
+        saveMenu();
+        saveTimer();
+      }
+      renderDb();
+      renderMenu();
+      renderSession();
+    });
+
+    function stopTimer() {
+      clearInterval(timerHandle);
+      timerHandle = null;
+      state.timer.running = false;
+    }
+
+    function finishTimer() {
+      state.timer.phase = "done";
+      state.timer.remainingMs = 0;
+      stopTimer();
+    }
+
+    function beginWork() {
+      state.timer.phase = "work";
+      state.timer.remainingMs = workMs();
+      endsAt = Date.now() + state.timer.remainingMs;
+    }
+
+    function advancePhase() {
+      const timer = state.timer;
+      const total = roundTotal();
+      if (timer.phase === "work") {
+        if (timer.round >= total) {
+          finishTimer();
+          return;
+        }
+        if (restMs() === 0) {
+          timer.round += 1;
+          beginWork();
+          return;
+        }
+        timer.phase = "rest";
+        timer.remainingMs = restMs();
+        endsAt = Date.now() + timer.remainingMs;
+        return;
+      }
+      if (timer.round >= total) {
+        finishTimer();
+        return;
+      }
+      timer.round += 1;
+      beginWork();
+    }
+
+    function tick() {
+      state.timer.remainingMs = Math.max(0, endsAt - Date.now());
+      if (state.timer.remainingMs <= 0) advancePhase();
+      renderTimer();
+    }
+
+    goBtn.addEventListener("click", () => {
+      const timer = state.timer;
+      if (timer.running) {
+        timer.remainingMs = Math.max(0, endsAt - Date.now());
+        stopTimer();
+        renderTimer();
+        return;
+      }
+      if (timer.phase === "done" || timer.phase === "idle") {
+        timer.round = 1;
+        beginWork();
+      }
+      timer.running = true;
+      endsAt = Date.now() + timer.remainingMs;
+      clearInterval(timerHandle);
+      timerHandle = setInterval(tick, 200);
+      renderTimer();
+    });
+
+    document.getElementById("reset").addEventListener("click", () => {
+      stopTimer();
+      state.timer.phase = "idle";
+      state.timer.round = 1;
+      state.timer.remainingMs = workMs();
+      renderTimer();
+    });
+
+    function applyTimerSettings() {
+      if (state.timer.phase === "idle") state.timer.remainingMs = workMs();
+      saveTimer();
+      renderTimer();
+    }
+
+    [workInput, restInput, roundInput].forEach((input) => {
+      input.addEventListener("input", applyTimerSettings);
+      input.addEventListener("change", () => {
+        const limits = input === restInput ? [0, 600, 10] : input === roundInput ? [1, 99, 8] : [1, 600, 20];
+        input.value = String(readNumber(input, limits[0], limits[1], limits[2]));
+        applyTimerSettings();
+      });
+    });
+
+    function returnToReady() {
+      stopTimer();
+      state.timer.phase = "idle";
+      state.timer.round = 1;
+      state.timer.remainingMs = workMs();
+      renderTimer();
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") returnToReady();
+    });
+    window.addEventListener("pagehide", () => {
+      saveTimer();
+      returnToReady();
+    });
+
+    workInput.value = String(loadedTimer.work);
+    restInput.value = String(loadedTimer.rest);
+    roundInput.value = String(loadedTimer.rounds);
+
+    renderChips(formParts, state.formPart, "data-part");
+    renderMenu();
+    renderSession();
+    renderDb();
+    renderTimer();
+    showMode("menu");
+    if (exercisesRepaired && exercisesReadable) saveExercises();
+    if (loadedMenu.repaired && exercisesReadable) saveMenu();
+    if (loadedTimer.repaired && exercisesReadable) saveTimer();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>

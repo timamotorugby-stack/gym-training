@@ -2,7 +2,11 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="トレーニング">
   <title>トレーニング</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,6 +38,8 @@
       font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
       font-size: 16px;
       line-height: 1.5;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
     }
 
     button, input { font: inherit; color: inherit; }
@@ -49,6 +55,7 @@
       position: sticky;
       top: 0;
       z-index: 5;
+      padding-top: env(safe-area-inset-top);
       background: rgba(243, 240, 232, 0.92);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(227, 221, 210, 0.9);
@@ -95,7 +102,7 @@
       box-shadow: var(--shadow);
     }
 
-    main { padding: 8px 0 72px; }
+    main { padding: 8px 0 calc(72px + env(safe-area-inset-bottom)); }
 
     .lead {
       margin: 18px 0 20px;
@@ -228,12 +235,14 @@
       color: var(--green);
     }
 
-    .set[aria-pressed="true"] .box {
+    .set[aria-pressed="true"] .box,
+    .session-row[aria-pressed="true"] .box {
       background: var(--green);
       border-color: var(--green);
     }
 
-    .set[aria-pressed="true"] .box::after {
+    .set[aria-pressed="true"] .box::after,
+    .session-row[aria-pressed="true"] .box::after {
       content: "";
       width: 6px;
       height: 10px;
@@ -543,15 +552,127 @@
     .pick:disabled { color: #a39e94; cursor: default; }
     .pick small { color: var(--muted); font-weight: 700; }
 
-    @media (min-width: 860px) {
-      .timer-layout {
-        grid-template-columns: minmax(0, 1fr) 340px;
-        align-items: start;
-      }
-      .timer-card { position: sticky; top: 92px; }
+    .shape {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 16px;
     }
 
-    @media (max-width: 859px) {
+    .shape button {
+      min-height: 68px;
+      padding: 8px 6px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .shape strong, .shape span { display: block; }
+    .shape strong { font-size: 0.92rem; line-height: 1.3; }
+    .shape span { margin-top: 2px; color: var(--muted); font-size: 0.72rem; font-weight: 500; }
+
+    .shape button[aria-pressed="true"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #f4f1ea;
+    }
+
+    .shape button[aria-pressed="true"] span { color: #d9d3c6; }
+
+    .set-heading {
+      margin: 20px 0 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .timer-settings {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      width: 100%;
+      margin: 4px 0 16px;
+      text-align: left;
+    }
+
+    .timer-settings label { margin: 0; }
+
+    input[type="number"] {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 48px;
+      padding: 8px 4px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .add-end {
+      width: 100%;
+      min-height: 56px;
+      margin-top: 4px;
+      border: 1.5px dashed #cfc6b6;
+      border-radius: 18px;
+      background: transparent;
+      font-weight: 700;
+    }
+
+    .session-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 4px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .session-row {
+      width: 100%;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      text-align: left;
+      box-shadow: var(--shadow);
+    }
+
+    .session-row strong { display: block; font-size: 1.05rem; line-height: 1.3; }
+    .session-row .part { margin-top: 2px; }
+
+    .session-row[aria-pressed="true"] {
+      background: var(--green-soft);
+      border-color: #cfe3d8;
+      color: var(--green);
+    }
+
+    .session-row[aria-pressed="true"] .part { color: var(--green); }
+
+    @media (min-width: 768px) {
+      .timer-layout {
+        grid-template-columns: minmax(0, 1fr) 320px;
+        align-items: start;
+      }
+      .timer-card {
+        position: sticky;
+        top: calc(92px + env(safe-area-inset-top));
+      }
+    }
+
+    @media (min-width: 1080px) {
+      .wrap { width: min(1120px, calc(100% - 48px)); }
+      .timer-layout { grid-template-columns: minmax(0, 1fr) 380px; }
+    }
+
+    @media (max-width: 767px) {
       .timer-card { order: -1; }
     }
 
@@ -573,13 +694,18 @@
   </header>
 
   <main class="wrap">
-    <p class="lead" id="lead">今日やる5種目です。各種目を3セット行います。</p>
+    <p class="lead" id="lead">同じ5種目を、それぞれ3セット行います。</p>
 
     <section id="panel-menu" role="tabpanel" aria-labelledby="tab-menu">
       <div class="narrow">
+        <div class="shape" id="shape-switch" role="group" aria-label="メニューの形">
+          <button type="button" data-shape="same" aria-pressed="true"><strong>同じ5種目</strong><span>それぞれ3セット</span></button>
+          <button type="button" data-shape="ten" aria-pressed="false"><strong>10種目</strong><span>違う5種目×2</span></button>
+          <button type="button" data-shape="fifteen" aria-pressed="false"><strong>15種目</strong><span>違う5種目×3</span></button>
+        </div>
         <div class="progress">
           <div class="progress-top">
-            <span>セット</span>
+            <span id="progress-label">セット</span>
             <span id="progress-count">0 / 15</span>
           </div>
           <div class="bar" aria-hidden="true"><span id="progress-fill"></span></div>
@@ -617,15 +743,31 @@
     <section id="panel-timer" role="tabpanel" aria-labelledby="tab-timer" hidden>
       <div class="timer-layout">
         <div>
-          <h2 class="side-title">今日のメニュー</h2>
+          <div class="progress">
+            <div class="progress-top">
+              <span>セッション</span>
+              <span id="session-count">0 / 0</span>
+            </div>
+          </div>
           <div id="timer-menu"></div>
+          <button class="add-end" type="button" id="add-session">末尾に追加</button>
         </div>
         <aside class="timer-card" id="timer-card">
           <p class="phase" id="phase">準備</p>
           <p class="time" id="time" aria-live="polite">20</p>
-          <p class="round-label" id="round-label">ラウンド 1 / 8</p>
+          <p class="round-label" id="round-label">セット 1 / 8</p>
           <div class="rounds" id="rounds" aria-hidden="true"></div>
-          <p class="spec">20秒 運動 · 10秒 休憩 · 8ラウンド</p>
+          <div class="timer-settings">
+            <label>ワーク
+              <input id="work-sec" type="number" min="1" max="600" inputmode="numeric" value="20">
+            </label>
+            <label>レスト
+              <input id="rest-sec" type="number" min="0" max="600" inputmode="numeric" value="10">
+            </label>
+            <label>セット
+              <input id="round-count" type="number" min="1" max="99" inputmode="numeric" value="8">
+            </label>
+          </div>
           <button class="primary go" type="button" id="go">スタート</button>
           <button class="ghost" type="button" id="reset">最初から</button>
         </aside>
@@ -655,13 +797,14 @@
       体幹: "#a33b3b",
       全身: "#3e3a34"
     };
-    const WORK_MS = 20000;
-    const REST_MS = 10000;
-    const ROUNDS = 8;
+    const SHAPES = {
+      same: { count: 5, setsEach: 3, groups: 1, lead: "同じ5種目を、それぞれ3セット行います。" },
+      ten: { count: 10, setsEach: 1, groups: 2, lead: "違う5種目を、2セット行います。" },
+      fifteen: { count: 15, setsEach: 1, groups: 3, lead: "違う5種目を、3セット行います。" }
+    };
     const LEADS = {
-      menu: "今日やる5種目です。各種目を3セット行います。",
       db: "種目を登録し、部位ごとに探します。",
-      timer: "今日のメニューと一緒に、タバタを使います。"
+      timer: "ワークとレストを決めて、種目を末尾に足していきます。"
     };
 
     const state = {
@@ -679,16 +822,27 @@
         { id: "push", name: "トライセプスプッシュダウン", part: "腕", note: "" },
         { id: "dl", name: "デッドリフト", part: "全身", note: "" }
       ],
-      today: ["sq", "bp", "lat", "ohp", "plank"],
-      checks: { "0-0": true, "0-1": true, "1-0": true },
+      menuShape: "same",
+      menus: {
+        same: ["sq", "bp", "lat", "ohp", "plank"],
+        ten: ["sq", "bp", "lat", "ohp", "plank", "rdl", "row", "inc", "raise", "curl"],
+        fifteen: ["sq", "bp", "lat", "ohp", "plank", "rdl", "row", "inc", "raise", "curl", "push", "dl", null, null, null]
+      },
+      checks: { "same-0-0": true, "same-0-1": true, "same-1-0": true, "ten-0": true, "fifteen-0": true, "fifteen-1": true },
+      session: [
+        { key: "s1", exerciseId: "sq", done: true },
+        { key: "s2", exerciseId: "row", done: false },
+        { key: "s3", exerciseId: "curl", done: false }
+      ],
       mode: "menu",
       dbFilter: "all",
+      pickerMode: "menu",
       pickerSlot: null,
       pickerFilter: "all",
       editingId: null,
       formPart: "胸",
       deleteArmed: null,
-      timer: { phase: "idle", round: 1, remainingMs: WORK_MS, running: false }
+      timer: { phase: "idle", round: 1, remainingMs: 20000, running: false }
     };
 
     let endsAt = 0;
@@ -718,6 +872,10 @@
     const roundLabel = document.getElementById("round-label");
     const roundsEl = document.getElementById("rounds");
     const goBtn = document.getElementById("go");
+    const workInput = document.getElementById("work-sec");
+    const restInput = document.getElementById("rest-sec");
+    const roundInput = document.getElementById("round-count");
+    const progressLabel = document.getElementById("progress-label");
 
     function esc(value) {
       return String(value).replace(/[&<>"']/g, (ch) => ({
@@ -729,8 +887,32 @@
       return state.exercises.find((item) => item.id === id) || null;
     }
 
-    function doneCount() {
-      return Object.values(state.checks).filter(Boolean).length;
+    function currentMenu() {
+      return state.menus[state.menuShape];
+    }
+
+    function shapeOf() {
+      return SHAPES[state.menuShape];
+    }
+
+    function readNumber(input, min, max, fallback) {
+      const value = Number(input.value);
+      if (!Number.isFinite(value)) return fallback;
+      return Math.min(max, Math.max(min, Math.round(value)));
+    }
+
+    function workMs() { return readNumber(workInput, 1, 600, 20) * 1000; }
+    function restMs() { return readNumber(restInput, 0, 600, 10) * 1000; }
+    function roundTotal() { return readNumber(roundInput, 1, 99, 8); }
+
+    function checkKey(shape, index, set) {
+      return set === undefined ? `${shape}-${index}` : `${shape}-${index}-${set}`;
+    }
+
+    function clearSlotChecks(shape, index) {
+      const sets = SHAPES[shape].setsEach;
+      if (sets === 1) delete state.checks[checkKey(shape, index)];
+      else for (let set = 0; set < sets; set += 1) delete state.checks[checkKey(shape, index, set)];
     }
 
     function chip(label, on, attrs) {
@@ -746,57 +928,80 @@
     }
 
     function renderProgress() {
-      const done = doneCount();
-      document.getElementById("progress-count").textContent = done === 15 ? "15セット完了" : `${done} / 15`;
-      document.getElementById("progress-fill").style.width = `${(done / 15) * 100}%`;
+      const shape = shapeOf();
+      const prefix = `${state.menuShape}-`;
+      const done = Object.entries(state.checks).filter(([key, on]) => on && key.startsWith(prefix)).length;
+      const total = shape.count * shape.setsEach;
+      const unit = shape.setsEach === 1 ? "種目" : "セット";
+      progressLabel.textContent = unit;
+      document.getElementById("progress-count").textContent = done === total ? `${total}${unit}完了` : `${done} / ${total}`;
+      document.getElementById("progress-fill").style.width = `${total ? (done / total) * 100 : 0}%`;
+    }
+
+    function menuCard(id, index) {
+      const exercise = exerciseById(id);
+      const order = String(index + 1).padStart(2, "0");
+      if (!exercise) {
+        return `<button type="button" class="empty-slot" data-pick="${index}"><strong>${index + 1}種目目を選ぶ</strong><span>データベースから選びます</span></button>`;
+      }
+      const setsEach = shapeOf().setsEach;
+      const sets = Array.from({ length: setsEach }, (_, set) => {
+        const key = setsEach === 1 ? checkKey(state.menuShape, index) : checkKey(state.menuShape, index, set);
+        const on = Boolean(state.checks[key]);
+        const label = setsEach === 1 ? "終了" : `セット ${set + 1}`;
+        return `<button type="button" class="set" data-check="${key}" aria-pressed="${on}"><span class="box"></span>${label}</button>`;
+      }).join("");
+      const note = exercise.note ? `<p class="note">${esc(exercise.note)}</p>` : "";
+      return `<article class="card">
+        <div class="card-top">
+          <div>
+            <p class="ord">${order}</p>
+            <h2>${esc(exercise.name)}</h2>
+            <div class="part" style="color:${PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</div>
+            ${note}
+          </div>
+          <button type="button" class="text-btn" data-pick="${index}">変更</button>
+        </div>
+        <div class="sets">${sets}</div>
+      </article>`;
     }
 
     function renderMenu() {
       renderProgress();
-      menuList.innerHTML = state.today.map((id, index) => {
-        const exercise = exerciseById(id);
-        const order = String(index + 1).padStart(2, "0");
-        if (!exercise) {
-          return `<button type="button" class="empty-slot" data-pick="${index}"><strong>${index + 1}種目目を選ぶ</strong><span>データベースから選びます</span></button>`;
-        }
-        const sets = [0, 1, 2].map((set) => {
-          const on = Boolean(state.checks[`${index}-${set}`]);
-          return `<button type="button" class="set" data-check="${index}-${set}" aria-pressed="${on}"><span class="box"></span>セット ${set + 1}</button>`;
-        }).join("");
-        const note = exercise.note ? `<p class="note">${esc(exercise.note)}</p>` : "";
-        return `<article class="card">
-          <div class="card-top">
-            <div>
-              <p class="ord">${order}</p>
-              <h2>${esc(exercise.name)}</h2>
-              <div class="part" style="color:${PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</div>
-              ${note}
-            </div>
-            <button type="button" class="text-btn" data-pick="${index}">変更</button>
-          </div>
-          <div class="sets">${sets}</div>
-        </article>`;
+      document.querySelectorAll("#shape-switch button").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.shape === state.menuShape));
+      });
+      const list = currentMenu();
+      const groups = shapeOf().groups;
+      if (groups === 1) {
+        menuList.innerHTML = list.map((id, index) => menuCard(id, index)).join("");
+        return;
+      }
+      menuList.innerHTML = Array.from({ length: groups }, (_, group) => {
+        const cards = list.slice(group * 5, group * 5 + 5).map((id, offset) => menuCard(id, group * 5 + offset)).join("");
+        return `<h3 class="set-heading">${group + 1}セット目</h3>${cards}`;
       }).join("");
     }
 
-    function renderTimerMenu() {
-      timerMenu.innerHTML = state.today.map((id, index) => {
-        const exercise = exerciseById(id);
-        if (!exercise) {
-          return `<button type="button" class="empty-slot" data-pick="${index}"><strong>${index + 1}種目目を選ぶ</strong><span>データベースから選びます</span></button>`;
-        }
-        const checks = [0, 1, 2].map((set) => {
-          const on = Boolean(state.checks[`${index}-${set}`]);
-          return `<button type="button" class="dotcheck" data-check="${index}-${set}" aria-pressed="${on}" aria-label="${esc(exercise.name)} セット ${set + 1}">${set + 1}</button>`;
-        }).join("");
-        return `<article class="card compact">
-          <div>
-            <h2>${esc(exercise.name)}</h2>
-            <div class="part" style="color:${PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</div>
-          </div>
-          <div class="checks">${checks}</div>
-        </article>`;
-      }).join("");
+    function renderSession() {
+      const done = state.session.filter((item) => item.done).length;
+      document.getElementById("session-count").textContent = state.session.length
+        ? `${done} / ${state.session.length}`
+        : "0";
+      timerMenu.innerHTML = state.session.map((item) => {
+        const exercise = exerciseById(item.exerciseId);
+        if (!exercise) return "";
+        return `<div class="session-item">
+          <button type="button" class="session-row" data-session="${item.key}" aria-pressed="${item.done}">
+            <span class="box"></span>
+            <span>
+              <strong>${esc(exercise.name)}</strong>
+              <span class="part" style="color:${item.done ? "inherit" : PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</span>
+            </span>
+          </button>
+          <button type="button" class="text-btn" data-remove="${item.key}">外す</button>
+        </div>`;
+      }).join("") || `<p class="empty-copy">種目を末尾に追加すると、ここに並びます。</p>`;
     }
 
     function renderGroups(list, rowHtml) {
@@ -831,10 +1036,12 @@
     }
 
     function renderPicker() {
-      const slot = state.pickerSlot;
-      pickerTitle.textContent = `${slot + 1}種目目を選ぶ`;
+      const appending = state.pickerMode === "timer";
+      pickerTitle.textContent = appending ? "末尾に追加" : `${state.pickerSlot + 1}種目目を選ぶ`;
       renderChips(pickerFilters, state.pickerFilter, "data-pick-filter");
-      const used = new Set(state.today.filter((id, index) => id && index !== slot));
+      const used = appending
+        ? new Set()
+        : new Set(currentMenu().filter((id, index) => id && index !== state.pickerSlot));
       const visible = state.pickerFilter === "all"
         ? state.exercises
         : state.exercises.filter((item) => item.part === state.pickerFilter);
@@ -849,17 +1056,19 @@
 
     function renderTimer() {
       const timer = state.timer;
+      const total = roundTotal();
       const phaseName = { idle: "準備", work: "運動", rest: "休憩", done: "終了" }[timer.phase];
       phaseEl.textContent = phaseName;
       timeEl.textContent = timer.phase === "done" ? "終了" : String(Math.max(0, Math.ceil(timer.remainingMs / 1000)));
-      roundLabel.textContent = timer.phase === "done" ? "8ラウンド終わりました" : `ラウンド ${timer.round} / ${ROUNDS}`;
-      roundsEl.innerHTML = Array.from({ length: ROUNDS }, (_, index) => {
-        const passed = timer.phase === "done" || index < timer.round - 1 || (timer.phase !== "idle" && index < timer.round - 1);
-        const now = timer.phase !== "idle" && timer.phase !== "done" && index === timer.round - 1;
-        const on = timer.phase === "done" || index < timer.round - (timer.phase === "idle" ? 0 : 0);
-        const filled = timer.phase === "done" || index < timer.round - 1;
-        return `<i class="${filled ? "on" : ""} ${now ? "now" : ""}"></i>`;
-      }).join("");
+      roundLabel.textContent = timer.phase === "done" ? `${total}セット終わりました` : `セット ${Math.min(timer.round, total)} / ${total}`;
+      roundsEl.hidden = total > 12;
+      if (!roundsEl.hidden) {
+        roundsEl.innerHTML = Array.from({ length: total }, (_, index) => {
+          const now = timer.phase !== "idle" && timer.phase !== "done" && index === timer.round - 1;
+          const filled = timer.phase === "done" || index < timer.round - 1;
+          return `<i class="${filled ? "on" : ""} ${now ? "now" : ""}"></i>`;
+        }).join("");
+      }
       timerCard.classList.toggle("is-work", timer.phase === "work");
       timerCard.classList.toggle("is-rest", timer.phase === "rest");
       timerCard.classList.toggle("is-done", timer.phase === "done");
@@ -869,16 +1078,16 @@
 
     function showMode(mode) {
       state.mode = mode;
-      lead.textContent = LEADS[mode];
+      lead.textContent = mode === "menu" ? shapeOf().lead : LEADS[mode];
       for (const name of ["menu", "db", "timer"]) {
         const tab = document.getElementById(`tab-${name}`);
         const panel = document.getElementById(`panel-${name}`);
         const on = name === mode;
         tab.setAttribute("aria-selected", String(on));
-panel.hidden = !on;
+        panel.hidden = !on;
+      }
+      window.scrollTo(0, 0);
     }
-    window.scrollTo(0, 0);
-  }
 
     function resetForm() {
       state.editingId = null;
@@ -915,28 +1124,55 @@ panel.hidden = !on;
       showMode(tab.id.replace("tab-", ""));
     });
 
-    menuList.addEventListener("click", onMenuClick);
-    timerMenu.addEventListener("click", onMenuClick);
+    document.getElementById("shape-switch").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-shape]");
+      if (!button || button.dataset.shape === state.menuShape) return;
+      state.menuShape = button.dataset.shape;
+      if (state.mode === "menu") lead.textContent = shapeOf().lead;
+      renderMenu();
+    });
 
-    function onMenuClick(event) {
+    menuList.addEventListener("click", (event) => {
       const check = event.target.closest("[data-check]");
       if (check) {
-        const key = check.dataset.check;
-        state.checks[key] = !state.checks[key];
+        state.checks[check.dataset.check] = !state.checks[check.dataset.check];
         renderMenu();
-        renderTimerMenu();
         return;
       }
       const pick = event.target.closest("[data-pick]");
       if (pick) openPicker(Number(pick.dataset.pick));
-    }
+    });
+
+    timerMenu.addEventListener("click", (event) => {
+      const remove = event.target.closest("[data-remove]");
+      if (remove) {
+        state.session = state.session.filter((item) => item.key !== remove.dataset.remove);
+        renderSession();
+        return;
+      }
+      const row = event.target.closest("[data-session]");
+      if (!row) return;
+      const item = state.session.find((entry) => entry.key === row.dataset.session);
+      if (!item) return;
+      item.done = !item.done;
+      renderSession();
+    });
 
     function openPicker(slot) {
+      state.pickerMode = "menu";
       state.pickerSlot = slot;
       state.pickerFilter = "all";
       renderPicker();
       picker.showModal();
     }
+
+    document.getElementById("add-session").addEventListener("click", () => {
+      state.pickerMode = "timer";
+      state.pickerSlot = null;
+      state.pickerFilter = "all";
+      renderPicker();
+      picker.showModal();
+    });
 
     document.getElementById("close-picker").addEventListener("click", () => picker.close());
     picker.addEventListener("click", (event) => {
@@ -954,14 +1190,20 @@ panel.hidden = !on;
       const button = event.target.closest("[data-choose]");
       if (!button || button.disabled) return;
       const id = button.dataset.choose;
+      if (state.pickerMode === "timer") {
+        state.session.push({ key: `s-${Date.now()}`, exerciseId: id, done: false });
+        picker.close();
+        renderSession();
+        return;
+      }
       const slot = state.pickerSlot;
-      if (state.today[slot] !== id) {
-        state.today[slot] = id;
-        for (let set = 0; set < 3; set += 1) delete state.checks[`${slot}-${set}`];
+      const list = currentMenu();
+      if (list[slot] !== id) {
+        list[slot] = id;
+        clearSlotChecks(state.menuShape, slot);
       }
       picker.close();
       renderMenu();
-      renderTimerMenu();
     });
 
     dbFilters.addEventListener("click", (event) => {
@@ -1003,7 +1245,7 @@ panel.hidden = !on;
       resetForm();
       renderDb();
       renderMenu();
-      renderTimerMenu();
+      renderSession();
     });
 
     cancelEdit.addEventListener("click", () => {
@@ -1033,18 +1275,21 @@ panel.hidden = !on;
       const id = remove.dataset.delete;
       const exercise = exerciseById(id);
       state.exercises = state.exercises.filter((item) => item.id !== id);
-      state.today.forEach((current, index) => {
-        if (current === id) {
-          state.today[index] = null;
-          for (let set = 0; set < 3; set += 1) delete state.checks[`${index}-${set}`];
-        }
-      });
+      for (const [shape, list] of Object.entries(state.menus)) {
+        list.forEach((current, index) => {
+          if (current === id) {
+            list[index] = null;
+            clearSlotChecks(shape, index);
+          }
+        });
+      }
+      state.session = state.session.filter((item) => item.exerciseId !== id);
       state.deleteArmed = null;
       if (state.editingId === id) resetForm();
       dbStatus.textContent = exercise ? `${exercise.name}を削除しました` : "";
       renderDb();
       renderMenu();
-      renderTimerMenu();
+      renderSession();
     });
 
     function stopTimer() {
@@ -1053,24 +1298,42 @@ panel.hidden = !on;
       state.timer.running = false;
     }
 
+    function finishTimer() {
+      state.timer.phase = "done";
+      state.timer.remainingMs = 0;
+      stopTimer();
+    }
+
+    function beginWork() {
+      state.timer.phase = "work";
+      state.timer.remainingMs = workMs();
+      endsAt = Date.now() + state.timer.remainingMs;
+    }
+
     function advancePhase() {
       const timer = state.timer;
+      const total = roundTotal();
       if (timer.phase === "work") {
+        if (timer.round >= total) {
+          finishTimer();
+          return;
+        }
+        if (restMs() === 0) {
+          timer.round += 1;
+          beginWork();
+          return;
+        }
         timer.phase = "rest";
-        timer.remainingMs = REST_MS;
-        endsAt = Date.now() + REST_MS;
+        timer.remainingMs = restMs();
+        endsAt = Date.now() + timer.remainingMs;
         return;
       }
-      if (timer.round >= ROUNDS) {
-        timer.phase = "done";
-        timer.remainingMs = 0;
-        stopTimer();
+      if (timer.round >= total) {
+        finishTimer();
         return;
       }
       timer.round += 1;
-      timer.phase = "work";
-      timer.remainingMs = WORK_MS;
-      endsAt = Date.now() + WORK_MS;
+      beginWork();
     }
 
     function tick() {
@@ -1088,9 +1351,8 @@ panel.hidden = !on;
         return;
       }
       if (timer.phase === "done" || timer.phase === "idle") {
-        timer.phase = "work";
         timer.round = 1;
-        timer.remainingMs = WORK_MS;
+        beginWork();
       }
       timer.running = true;
       endsAt = Date.now() + timer.remainingMs;
@@ -1103,13 +1365,20 @@ panel.hidden = !on;
       stopTimer();
       state.timer.phase = "idle";
       state.timer.round = 1;
-      state.timer.remainingMs = WORK_MS;
+      state.timer.remainingMs = workMs();
       renderTimer();
+    });
+
+    [workInput, restInput, roundInput].forEach((input) => {
+      input.addEventListener("input", () => {
+        if (state.timer.phase === "idle") state.timer.remainingMs = workMs();
+        renderTimer();
+      });
     });
 
     renderChips(formParts, state.formPart, "data-part");
     renderMenu();
-    renderTimerMenu();
+    renderSession();
     renderDb();
     renderTimer();
     showMode("menu");
