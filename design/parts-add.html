@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>トレーニング（部位の追加・確認用）</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1b19;
+      --muted: #6f6a62;
+      --paper: #f3f0e8;
+      --card: #fffcf7;
+      --line: #e3ddd2;
+      --track: #e6e0d4;
+      --green: #1f6b4a;
+      --danger: #9d3b32;
+      --shadow: 0 1px 2px rgba(28, 27, 25, 0.05);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    .wrap {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      padding-top: env(safe-area-inset-top);
+      background: rgba(243, 240, 232, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(227, 221, 210, 0.9);
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px 24px;
+      padding: 16px 0;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .tabs {
+      display: flex;
+      width: min(100%, 420px);
+      padding: 4px;
+      background: var(--track);
+      border-radius: 14px;
+    }
+
+    .tabs button {
+      flex: 1;
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #5c574f;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .tabs button[aria-selected="true"] {
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    main { padding: 8px 0 calc(72px + env(safe-area-inset-bottom)); }
+
+    .mock-note {
+      margin: 16px 0 0;
+      padding: 8px 12px;
+      background: #e8e2d6;
+      border-radius: 12px;
+      color: #5c574f;
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .lead {
+      margin: 18px 0 20px;
+      color: var(--muted);
+    }
+
+    .narrow { width: min(720px, 100%); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px 16px 12px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .ord {
+      margin: 0;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: #9a948a;
+    }
+
+    .card h2 {
+      margin: 2px 0 0;
+      font-size: 1.35rem;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .part {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .part i {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      display: block;
+    }
+
+    .note {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .text-btn {
+      border: 0;
+      background: transparent;
+      min-height: 40px;
+      padding: 0 4px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .text-btn:hover { color: var(--ink); }
+
+    form {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    form h2 {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    input[type="text"] {
+      display: block;
+      width: 100%;
+      margin-top: 6px;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    fieldset {
+      border: 0;
+      margin: 0 0 14px;
+      padding: 0;
+    }
+
+    legend {
+      padding: 0;
+      margin-bottom: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .chip {
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 1px solid #ddd6c8;
+      background: #fff;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .chip.is-on {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #f4f1ea;
+    }
+
+    .chip.add {
+      border: 1.5px dashed #cfc6b6;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .part-add {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .part-add input {
+      flex: 1 1 160px;
+      min-width: 0;
+      margin-top: 0;
+    }
+
+    .part-delete {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 4px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .form-error {
+      margin: 0 0 12px;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .part-error {
+      flex: 1 0 100%;
+      margin: 8px 0 0;
+    }
+
+    .part-note {
+      flex: 1 0 100%;
+      margin: 0;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .form-actions { display: flex; gap: 8px; align-items: center; }
+
+    .primary {
+      min-height: 48px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--ink);
+      color: #f4f1ea;
+      font-weight: 700;
+    }
+
+    .status {
+      min-height: 1.4em;
+      margin: 12px 0;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .filters { margin: 4px 0 8px; }
+
+    .group-label {
+      margin: 18px 0 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .ex-row {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .ex-row h3 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    .ex-row p { margin: 2px 0 0; color: var(--muted); font-size: 0.88rem; }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+    }
+
+    .row-actions { display: flex; gap: 4px; }
+
+    .danger { color: var(--danger); }
+    .text-btn.danger:hover { color: var(--danger); }
+
+    .empty-copy {
+      margin: 20px 0;
+      color: var(--muted);
+    }
+
+    .box {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #c9c2b4;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .set-heading {
+      margin: 20px 0 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .session-row {
+      width: 100%;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      text-align: left;
+      box-shadow: var(--shadow);
+    }
+
+    .session-row strong { display: block; font-size: 1.05rem; line-height: 1.3; }
+    .session-row .part { margin-top: 2px; }
+
+    .mock-preview { margin-top: 28px; }
+
+    .mock-kicker {
+      margin: 0 0 12px;
+      color: #5c574f;
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+
+    .mock-samples {
+      display: grid;
+      gap: 8px 16px;
+    }
+
+    .mock-preview .set-heading { margin-top: 0; }
+    .mock-preview .card,
+    .mock-preview .session-row { pointer-events: none; }
+
+    @media (min-width: 720px) {
+      .mock-samples { grid-template-columns: 1fr 1fr; align-items: start; }
+    }
+
+    @media (min-width: 1080px) {
+      .wrap { width: min(1120px, calc(100% - 48px)); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap head">
+      <h1>トレーニング</h1>
+      <div class="tabs" role="tablist" aria-label="モード">
+        <button type="button" role="tab" aria-selected="false" tabindex="-1">メニュー</button>
+        <button type="button" role="tab" aria-selected="true">データベース</button>
+        <button type="button" role="tab" aria-selected="false" tabindex="-1">タイマー</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="mock-note">確認用です。前腕は、あとから足した部位の例です。前腕を選ぶと、削除できます。</p>
+    <p class="lead">種目を登録し、部位ごとに探します。</p>
+
+    <section>
+      <div class="narrow">
+        <form id="exercise-form">
+          <h2 id="form-title">種目を追加</h2>
+          <label>種目名
+            <input type="text" id="name" name="name" maxlength="40" placeholder="スクワット" autocomplete="off">
+          </label>
+          <fieldset>
+            <legend>部位</legend>
+            <div class="chips" id="form-parts"></div>
+            <div id="part-extra"></div>
+          </fieldset>
+          <p class="form-error" id="form-error" hidden></p>
+          <label>メモ
+            <input type="text" id="note" name="note" maxlength="80" placeholder="肩甲骨を寄せる、など" autocomplete="off">
+          </label>
+          <div class="form-actions">
+            <button class="primary" type="submit" id="save-btn">登録する</button>
+            <button class="text-btn" type="button" id="cancel-edit" hidden>キャンセル</button>
+          </div>
+        </form>
+        <p class="status" id="db-status" role="status"></p>
+        <div class="chips filters" id="db-filters"></div>
+        <div id="db-list"></div>
+
+        <aside class="mock-preview" aria-label="確認用の見え方">
+          <p class="mock-kicker">確認用です。メニューとタイマーでも、同じ名前と色になります。</p>
+          <div id="mock-preview-body"></div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const DEFAULT_PARTS = ["胸", "背中", "肩", "腕", "脚", "体幹", "全身"];
+    const EXTRA_COLORS = ["#2f7a72", "#8a4e62", "#4f5d8a", "#5f6638", "#7a5530", "#3e6a78"];
+    const PART_COLOR = {
+      胸: "#c4673a",
+      背中: "#2f6f8f",
+      肩: "#a6842d",
+      腕: "#7a4e86",
+      脚: "#2f7d4a",
+      体幹: "#a33b3b",
+      全身: "#3e3a34"
+    };
+
+    const state = {
+      customParts: [{ name: "前腕", color: "#2f7a72" }],
+      exercises: [
+        { id: "bp", name: "ベンチプレス", part: "胸", note: "肩甲骨を寄せて下ろす" },
+        { id: "lat", name: "ラットプルダウン", part: "背中", note: "胸を張って肘を下ろす" },
+        { id: "raise", name: "サイドレイズ", part: "肩", note: "" },
+        { id: "curl", name: "アームカール", part: "腕", note: "" },
+        { id: "sq", name: "スクワット", part: "脚", note: "膝とつま先の向きをそろえる" },
+        { id: "plank", name: "プランク", part: "体幹", note: "腰を落とさない" },
+        { id: "dl", name: "デッドリフト", part: "全身", note: "" },
+        { id: "wrist", name: "リストカール", part: "前腕", note: "手首だけ曲げる" }
+      ],
+      formPart: "胸",
+      dbFilter: "all",
+      editingId: null,
+      deleteArmed: null,
+      addingPart: false,
+      partDraft: "",
+      partError: "",
+      partDeleteArmed: false,
+      status: "",
+      formError: "",
+      focusPart: false,
+      focusName: false
+    };
+
+    const form = document.getElementById("exercise-form");
+    const formParts = document.getElementById("form-parts");
+    const partExtra = document.getElementById("part-extra");
+    const formTitle = document.getElementById("form-title");
+    const formError = document.getElementById("form-error");
+    const saveBtn = document.getElementById("save-btn");
+    const cancelEdit = document.getElementById("cancel-edit");
+    const dbStatus = document.getElementById("db-status");
+    const dbFilters = document.getElementById("db-filters");
+    const dbList = document.getElementById("db-list");
+    const nameInput = document.getElementById("name");
+    const noteInput = document.getElementById("note");
+    const previewBody = document.getElementById("mock-preview-body");
+
+    function esc(value) {
+      return String(value).replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[ch]);
+    }
+
+    function normalize(value) {
+      return String(value).replace(/^[\s\u3000]+|[\s\u3000]+$/g, "");
+    }
+
+    function allParts() {
+      return DEFAULT_PARTS.concat(state.customParts.map((item) => item.name));
+    }
+
+    function isCustom(name) {
+      return state.customParts.some((item) => item.name === name);
+    }
+
+    function colorOf(name) {
+      if (PART_COLOR[name]) return PART_COLOR[name];
+      const custom = state.customParts.find((item) => item.name === name);
+      return custom ? custom.color : "#3e3a34";
+    }
+
+    function nextColor() {
+      const used = new Set(state.customParts.map((item) => item.color));
+      return EXTRA_COLORS.find((color) => !used.has(color))
+        || EXTRA_COLORS[state.customParts.length % EXTRA_COLORS.length];
+    }
+
+    function chip(label, on, attrs, extraClass) {
+      const classes = `chip${on ? " is-on" : ""}${extraClass ? ` ${extraClass}` : ""}`;
+      return `<button type="button" class="${classes}" ${attrs}>${esc(label)}</button>`;
+    }
+
+    function captureDraft() {
+      const input = document.getElementById("part-name");
+      if (input && state.addingPart) state.partDraft = input.value;
+    }
+
+    function partWarning(name) {
+      const items = state.exercises.filter((item) => item.part === name);
+      if (!items.length) return "";
+      if (items.length === 1) return `『${items[0].name}』も削除されます`;
+      return `この部位の${items.length}種目も削除されます`;
+    }
+
+    function renderPartExtra() {
+      const adding = state.addingPart
+        ? `<div class="part-add">
+            <input type="text" id="part-name" maxlength="16" placeholder="ハムストリング、など" autocomplete="off" aria-label="部位名" value="${esc(state.partDraft)}">
+            <button class="primary" type="button" data-commit-part>追加する</button>
+            <button class="text-btn" type="button" data-cancel-part>やめる</button>
+            ${state.partError ? `<p class="form-error part-error">${esc(state.partError)}</p>` : ""}
+          </div>`
+        : "";
+      let deleting = "";
+      if (isCustom(state.formPart)) {
+        if (state.partDeleteArmed) {
+          const warning = partWarning(state.formPart);
+          deleting = `<div class="part-delete">
+            ${warning ? `<p class="part-note">${esc(warning)}</p>` : ""}
+            <button type="button" class="text-btn danger" data-delete-part>削除する</button>
+            <button type="button" class="text-btn" data-cancel-part-delete>やめる</button>
+          </div>`;
+        } else {
+          deleting = `<div class="part-delete">
+            <button type="button" class="text-btn" data-arm-part>この部位を削除</button>
+          </div>`;
+        }
+      }
+      partExtra.innerHTML = deleting + adding;
+    }
+
+    function renderChips() {
+      const parts = allParts().map((part) => chip(part, state.formPart === part, `data-part="${esc(part)}"`)).join("");
+      const add = state.addingPart ? "" : chip("部位を追加", false, 'data-add-part aria-expanded="false"', "add");
+      formParts.innerHTML = parts + add;
+      const filters = chip("すべて", state.dbFilter === "all", 'data-filter="all"')
+        + allParts().map((part) => chip(part, state.dbFilter === part, `data-filter="${esc(part)}"`)).join("");
+      dbFilters.innerHTML = filters;
+      renderPartExtra();
+    }
+
+    function renderList() {
+      const visible = state.dbFilter === "all"
+        ? state.exercises
+        : state.exercises.filter((item) => item.part === state.dbFilter);
+      const groups = allParts().map((part) => ({
+        part,
+        items: visible.filter((item) => item.part === part)
+      })).filter((group) => group.items.length);
+      if (!groups.length) {
+        const message = state.exercises.length ? "この部位の種目はありません" : "種目はまだありません";
+        dbList.innerHTML = `<p class="empty-copy">${message}</p>`;
+        return;
+      }
+      dbList.innerHTML = groups.map((group) => {
+        const rows = group.items.map((item) => {
+          const note = item.note ? `<p>${esc(item.note)}</p>` : "";
+          const actions = state.deleteArmed === item.id
+            ? `<button type="button" class="text-btn danger" data-delete="${item.id}">削除する</button><button type="button" class="text-btn" data-cancel-delete>やめる</button>`
+            : `<button type="button" class="text-btn" data-edit="${item.id}">編集</button><button type="button" class="text-btn" data-arm="${item.id}">削除</button>`;
+          return `<article class="ex-row">
+            <i class="dot" style="background:${colorOf(item.part)}"></i>
+            <div><h3>${esc(item.name)}</h3>${note}</div>
+            <div class="row-actions">${actions}</div>
+          </article>`;
+        }).join("");
+        return `<h3 class="group-label" style="color:${colorOf(group.part)}">${esc(group.part)}</h3>${rows}`;
+      }).join("");
+    }
+
+    function renderPreview() {
+      const customNames = state.customParts.map((item) => item.name);
+      let exercise = null;
+      for (let index = customNames.length - 1; index >= 0; index -= 1) {
+        exercise = state.exercises.find((item) => item.part === customNames[index]) || null;
+        if (exercise) break;
+      }
+      if (!exercise) {
+        previewBody.innerHTML = `<p class="empty-copy">追加した部位の種目があると、ここに名前と色が出ます。</p>`;
+        return;
+      }
+      const color = colorOf(exercise.part);
+      const note = exercise.note ? `<p class="note">${esc(exercise.note)}</p>` : "";
+      previewBody.innerHTML = `<div class="mock-samples">
+        <div>
+          <h3 class="set-heading">メニュー</h3>
+          <article class="card">
+            <div class="card-top">
+              <div>
+                <p class="ord">01</p>
+                <h2>${esc(exercise.name)}</h2>
+                <div class="part" style="color:${color}"><i style="background:${color}"></i>${esc(exercise.part)}</div>
+                ${note}
+              </div>
+            </div>
+          </article>
+        </div>
+        <div>
+          <h3 class="set-heading">タイマー</h3>
+          <div class="session-row">
+            <span class="box"></span>
+            <span>
+              <strong>${esc(exercise.name)}</strong>
+              <span class="part" style="color:${color}"><i style="background:${color}"></i>${esc(exercise.part)}</span>
+            </span>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function renderFormChrome() {
+      const editing = Boolean(state.editingId);
+      formTitle.textContent = editing ? "種目を編集" : "種目を追加";
+      saveBtn.textContent = editing ? "保存する" : "登録する";
+      cancelEdit.hidden = !editing;
+      formError.hidden = !state.formError;
+      formError.textContent = state.formError;
+      dbStatus.textContent = state.status;
+    }
+
+    function render() {
+      captureDraft();
+      renderFormChrome();
+      renderChips();
+      renderList();
+      renderPreview();
+      if (state.focusPart) {
+        const input = document.getElementById("part-name");
+        if (input) {
+          input.focus();
+          const end = input.value.length;
+          input.setSelectionRange(end, end);
+        }
+        state.focusPart = false;
+      } else if (state.focusName) {
+        nameInput.focus();
+        state.focusName = false;
+      }
+    }
+
+    function resetForm() {
+      state.editingId = null;
+      state.formPart = "胸";
+      state.formError = "";
+      state.deleteArmed = null;
+      state.partDeleteArmed = false;
+      nameInput.value = "";
+      noteInput.value = "";
+    }
+
+    function commitPart() {
+      captureDraft();
+      const name = normalize(state.partDraft);
+      if (!name) {
+        state.partError = "部位名を入力してください";
+        state.focusPart = true;
+        render();
+        return;
+      }
+      if (name === "すべて") {
+        state.partError = "すべて、という名前は使えません";
+        state.focusPart = true;
+        render();
+        return;
+      }
+      if (allParts().includes(name)) {
+        state.partError = "同じ部位があります";
+        state.focusPart = true;
+        render();
+        return;
+      }
+      state.customParts.push({ name, color: nextColor() });
+      state.formPart = name;
+      state.addingPart = false;
+      state.partDraft = "";
+      state.partError = "";
+      state.partDeleteArmed = false;
+      state.status = `${name}を追加しました`;
+      state.focusName = true;
+      render();
+    }
+
+    function deletePart() {
+      const name = state.formPart;
+      if (!isCustom(name)) return;
+      const removedIds = new Set(state.exercises.filter((item) => item.part === name).map((item) => item.id));
+      state.exercises = state.exercises.filter((item) => item.part !== name);
+      state.customParts = state.customParts.filter((item) => item.name !== name);
+      if (state.dbFilter === name) state.dbFilter = "all";
+      state.partDeleteArmed = false;
+      state.status = `${name}を削除しました`;
+      if (state.editingId && removedIds.has(state.editingId)) {
+        resetForm();
+      } else if (state.editingId) {
+        const editing = state.exercises.find((item) => item.id === state.editingId);
+        state.formPart = editing ? editing.part : "胸";
+      } else {
+        state.formPart = "胸";
+      }
+      render();
+    }
+
+    formParts.addEventListener("click", (event) => {
+      const add = event.target.closest("[data-add-part]");
+      if (add) {
+        state.addingPart = true;
+        state.partDraft = "";
+        state.partError = "";
+        state.partDeleteArmed = false;
+        state.focusPart = true;
+        render();
+        return;
+      }
+      const button = event.target.closest("[data-part]");
+      if (!button) return;
+      state.formPart = button.dataset.part;
+      state.partDeleteArmed = false;
+      render();
+    });
+
+    partExtra.addEventListener("click", (event) => {
+      if (event.target.closest("[data-commit-part]")) {
+        commitPart();
+        return;
+      }
+      if (event.target.closest("[data-cancel-part]")) {
+        state.addingPart = false;
+        state.partDraft = "";
+        state.partError = "";
+        render();
+        return;
+      }
+      if (event.target.closest("[data-arm-part]")) {
+        state.partDeleteArmed = true;
+        render();
+        return;
+      }
+      if (event.target.closest("[data-cancel-part-delete]")) {
+        state.partDeleteArmed = false;
+        render();
+        return;
+      }
+      if (event.target.closest("[data-delete-part]")) deletePart();
+    });
+
+    partExtra.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && event.target.id === "part-name") {
+        event.preventDefault();
+        commitPart();
+      }
+    });
+
+    dbFilters.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-filter]");
+      if (!button) return;
+      state.dbFilter = button.dataset.filter;
+      render();
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const name = nameInput.value.trim();
+      if (!name) {
+        state.formError = "種目名を入力してください";
+        state.status = "";
+        render();
+        nameInput.focus();
+        return;
+      }
+      state.formError = "";
+      const note = noteInput.value.trim();
+      if (state.editingId) {
+        const exercise = state.exercises.find((item) => item.id === state.editingId);
+        if (exercise) {
+          exercise.name = name;
+          exercise.part = state.formPart;
+          exercise.note = note;
+        }
+        state.status = `${name}を保存しました`;
+      } else {
+        state.exercises.push({ id: `ex-${Date.now()}`, name, part: state.formPart, note });
+        state.status = `${name}を登録しました`;
+        if (state.dbFilter !== "all" && state.dbFilter !== state.formPart) state.dbFilter = state.formPart;
+      }
+      resetForm();
+      render();
+    });
+
+    cancelEdit.addEventListener("click", () => {
+      resetForm();
+      state.status = "";
+      render();
+    });
+
+    dbList.addEventListener("click", (event) => {
+      const edit = event.target.closest("[data-edit]");
+      if (edit) {
+        const exercise = state.exercises.find((item) => item.id === edit.dataset.edit);
+        if (!exercise) return;
+        state.editingId = exercise.id;
+        state.formPart = exercise.part;
+        state.deleteArmed = null;
+        state.partDeleteArmed = false;
+        state.formError = "";
+        state.status = "";
+        nameInput.value = exercise.name;
+        noteInput.value = exercise.note;
+        render();
+        form.scrollIntoView({ block: "nearest" });
+        nameInput.focus();
+        return;
+      }
+      const arm = event.target.closest("[data-arm]");
+      if (arm) {
+        state.deleteArmed = arm.dataset.arm;
+        render();
+        return;
+      }
+      if (event.target.closest("[data-cancel-delete]")) {
+        state.deleteArmed = null;
+        render();
+        return;
+      }
+      const remove = event.target.closest("[data-delete]");
+      if (!remove) return;
+      const exercise = state.exercises.find((item) => item.id === remove.dataset.delete);
+      state.exercises = state.exercises.filter((item) => item.id !== remove.dataset.delete);
+      state.deleteArmed = null;
+      if (state.editingId === remove.dataset.delete) resetForm();
+      state.status = exercise ? `${exercise.name}を削除しました` : "";
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

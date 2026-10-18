@@ -344,11 +344,52 @@
       color: #f4f1ea;
     }
 
+    .chip.add {
+      border: 1.5px dashed #cfc6b6;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .part-add {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .part-add input {
+      flex: 1 1 160px;
+      min-width: 0;
+      margin-top: 0;
+    }
+
+    .part-delete {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 4px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
     .form-error {
       margin: 0 0 12px;
       color: var(--danger);
       font-weight: 700;
       font-size: 0.92rem;
+    }
+
+    .part-error {
+      flex: 1 0 100%;
+      margin: 8px 0 0;
+    }
+
+    .part-note {
+      flex: 1 0 100%;
+      margin: 0;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
     }
 
     .form-actions { display: flex; gap: 8px; align-items: center; }
@@ -399,6 +440,7 @@
     .row-actions { display: flex; gap: 4px; }
 
     .danger { color: var(--danger); }
+    .text-btn.danger:hover { color: var(--danger); }
 
     .empty-copy {
       margin: 20px 0;
@@ -729,6 +771,7 @@
           <fieldset>
             <legend>部位</legend>
             <div class="chips" id="form-parts"></div>
+            <div id="part-extra"></div>
           </fieldset>
           <label>メモ
             <input type="text" id="note" name="note" maxlength="80" placeholder="肩甲骨を寄せる、など" autocomplete="off">
@@ -793,7 +836,8 @@
   </dialog>
 
   <script>
-    const PARTS = ["胸", "背中", "肩", "腕", "脚", "体幹", "全身"];
+    const DEFAULT_PARTS = ["胸", "背中", "肩", "腕", "脚", "体幹", "全身"];
+    const EXTRA_COLORS = ["#2f7a72", "#8a4e62", "#4f5d8a", "#5f6638", "#7a5530", "#3e6a78"];
     const PART_COLOR = {
       胸: "#c4673a",
       背中: "#2f6f8f",
@@ -813,6 +857,7 @@
       timer: "ワークとレストを決めて、種目を末尾に足していきます。"
     };
     const EXERCISE_KEY = "gym-training-exercises";
+    const PARTS_KEY = "gym-training-parts";
     const MENU_KEY = "gym-training-menu";
     const TIMER_KEY = "gym-training-timer";
     let exercisesReadable = true;
@@ -825,7 +870,35 @@
       return `ex-${Date.now().toString(36)}-${exerciseSeq.toString(36)}`;
     }
 
-    function loadExercises() {
+    function normalize(value) {
+      return String(value).replace(/^[\s\u3000]+|[\s\u3000]+$/g, "");
+    }
+
+    function loadCustomParts() {
+      try {
+        const raw = localStorage.getItem(PARTS_KEY);
+        if (raw == null) return { ok: false };
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return { ok: false };
+        const parts = [];
+        const seen = new Set();
+        for (const item of parsed) {
+          if (!item || typeof item !== "object" || Array.isArray(item)) return { ok: false };
+          if (typeof item.name !== "string" || typeof item.color !== "string") return { ok: false };
+          const name = item.name;
+          if (!name || name !== normalize(name) || name.length > 16) return { ok: false };
+          if (name === "すべて" || DEFAULT_PARTS.includes(name) || seen.has(name)) return { ok: false };
+          if (!EXTRA_COLORS.includes(item.color)) return { ok: false };
+          seen.add(name);
+          parts.push({ name, color: item.color });
+        }
+        return { ok: true, parts };
+      } catch (error) {
+        return { ok: false };
+      }
+    }
+
+    function loadExercises(knownParts) {
       try {
         const raw = localStorage.getItem(EXERCISE_KEY);
         if (!raw) return [];
@@ -835,7 +908,8 @@
         return parsed.flatMap((item) => {
           if (!item || typeof item.id !== "string" || !item.id) return [];
           if (typeof item.name !== "string" || !item.name.trim()) return [];
-          if (!PARTS.includes(item.part)) return [];
+          if (typeof item.part !== "string" || !normalize(item.part)) return [];
+          if (knownParts && !knownParts.has(item.part)) return [];
           if (item.note !== undefined && typeof item.note !== "string") return [];
           let id = item.id;
           if (seen.has(id)) {
@@ -856,9 +930,33 @@
       }
     }
 
+    function recoverParts(exercises) {
+      const seen = new Set(DEFAULT_PARTS);
+      const names = [];
+      for (const exercise of exercises) {
+        if (seen.has(exercise.part)) continue;
+        seen.add(exercise.part);
+        names.push(exercise.part);
+      }
+      return names.map((name, index) => ({
+        name,
+        color: EXTRA_COLORS[index % EXTRA_COLORS.length]
+      }));
+    }
+
     function saveExercises() {
       try {
         localStorage.setItem(EXERCISE_KEY, JSON.stringify(state.exercises));
+        return true;
+      } catch (error) {
+        dbStatus.textContent = "保存できませんでした";
+        return false;
+      }
+    }
+
+    function saveParts() {
+      try {
+        localStorage.setItem(PARTS_KEY, JSON.stringify(state.customParts));
         return true;
       } catch (error) {
         dbStatus.textContent = "保存できませんでした";
@@ -1045,26 +1143,38 @@
       }
     }
 
-    const loadedExercises = loadExercises();
+    const loadedParts = loadCustomParts();
+    const loadedExercises = loadExercises(loadedParts.ok
+      ? new Set(DEFAULT_PARTS.concat(loadedParts.parts.map((item) => item.name)))
+      : null);
+    const loadedCustomParts = loadedParts.ok ? loadedParts.parts : recoverParts(loadedExercises);
     const loadedMenu = loadMenu(loadedExercises);
     const loadedTimer = loadTimer(loadedExercises);
 
     const state = {
       exercises: loadedExercises,
+      customParts: loadedCustomParts,
       menuShape: loadedMenu.menuShape,
       menus: loadedMenu.menus,
       checks: loadedMenu.checks,
       session: loadedTimer.session,
       mode: "menu",
-      dbFilter: "all",
+      dbFilter: null,
       pickerMode: "menu",
       pickerSlot: null,
-      pickerFilter: "all",
+      pickerFilter: null,
       editingId: null,
       formPart: "胸",
       deleteArmed: null,
+      addingPart: false,
+      partDraft: "",
+      partError: "",
+      partDeleteArmed: false,
+      focusPart: false,
+      focusName: false,
       timer: { phase: "idle", round: 1, remainingMs: loadedTimer.work * 1000, running: false }
     };
+    let ignorePartEnter = false;
 
     let endsAt = 0;
     let timerHandle = null;
@@ -1075,6 +1185,7 @@
     const dbList = document.getElementById("db-list");
     const dbFilters = document.getElementById("db-filters");
     const formParts = document.getElementById("form-parts");
+    const partExtra = document.getElementById("part-extra");
     const form = document.getElementById("exercise-form");
     const formTitle = document.getElementById("form-title");
     const formError = document.getElementById("form-error");
@@ -1136,16 +1247,121 @@
       else for (let set = 0; set < sets; set += 1) delete state.checks[checkKey(shape, index, set)];
     }
 
-    function chip(label, on, attrs) {
-      return `<button type="button" class="chip${on ? " is-on" : ""}" ${attrs}>${esc(label)}</button>`;
+    function chip(label, on, attrs, extraClass) {
+      const classes = `chip${on ? " is-on" : ""}${extraClass ? ` ${extraClass}` : ""}`;
+      return `<button type="button" class="${classes}" ${attrs}>${esc(label)}</button>`;
+    }
+
+    function allParts() {
+      return DEFAULT_PARTS.concat(state.customParts.map((item) => item.name));
+    }
+
+    function isCustomPart(name) {
+      return state.customParts.some((item) => item.name === name);
+    }
+
+    function colorOf(name) {
+      if (DEFAULT_PARTS.includes(name)) return PART_COLOR[name];
+      const custom = state.customParts.find((item) => item.name === name);
+      return custom ? custom.color : "#3e3a34";
+    }
+
+    function nextColor() {
+      const used = new Set(state.customParts.map((item) => item.color));
+      if (used.size < EXTRA_COLORS.length) {
+        let maxIndex = -1;
+        for (const item of state.customParts) {
+          const index = EXTRA_COLORS.indexOf(item.color);
+          if (index > maxIndex) maxIndex = index;
+        }
+        if (maxIndex < EXTRA_COLORS.length - 1) return EXTRA_COLORS[maxIndex + 1];
+        const open = EXTRA_COLORS.find((color) => !used.has(color));
+        if (open) return open;
+      }
+      return EXTRA_COLORS[state.customParts.length % EXTRA_COLORS.length];
     }
 
     function renderChips(target, selected, attrName) {
       const all = attrName === "data-part"
         ? ""
-        : chip("すべて", selected === "all", `${attrName}="all"`);
-      const parts = PARTS.map((part) => chip(part, selected === part, `${attrName}="${part}"`)).join("");
-      target.innerHTML = all + parts;
+        : chip("すべて", selected === null, 'data-all="true"');
+      const parts = allParts().map((part) => chip(part, selected === part, `${attrName}="${esc(part)}"`)).join("");
+      const add = attrName === "data-part" && !state.addingPart
+        ? chip("部位を追加", false, 'data-add-part aria-expanded="false"', "add")
+        : "";
+      target.innerHTML = all + parts + add;
+    }
+
+    function capturePartDraft() {
+      const input = document.getElementById("part-name");
+      if (!input || !state.addingPart) return null;
+      state.partDraft = input.value;
+      return {
+        start: input.selectionStart,
+        end: input.selectionEnd,
+        focused: document.activeElement === input
+      };
+    }
+
+    function partWarning(name) {
+      const items = state.exercises.filter((item) => item.part === name);
+      if (items.length === 1) return `『${items[0].name}』も削除されます`;
+      if (items.length > 1) return `この部位の${items.length}種目も削除されます`;
+      return "";
+    }
+
+    function renderPartExtra() {
+      const adding = state.addingPart
+        ? `<div class="part-add">
+            <input type="text" id="part-name" maxlength="16" placeholder="ハムストリング、など" autocomplete="off" aria-label="部位名" value="${esc(state.partDraft)}">
+            <button class="primary" type="button" data-commit-part>追加する</button>
+            <button class="text-btn" type="button" data-cancel-part>やめる</button>
+            ${state.partError ? `<p class="form-error part-error">${esc(state.partError)}</p>` : ""}
+          </div>`
+        : "";
+      let deleting = "";
+      if (isCustomPart(state.formPart)) {
+        if (state.partDeleteArmed) {
+          const warning = partWarning(state.formPart);
+          deleting = `<div class="part-delete">
+            ${warning ? `<p class="part-note">${esc(warning)}</p>` : ""}
+            <button type="button" class="text-btn danger" data-delete-part>削除する</button>
+            <button type="button" class="text-btn" data-cancel-part-delete>やめる</button>
+          </div>`;
+        } else {
+          deleting = `<div class="part-delete">
+            <button type="button" class="text-btn" data-arm-part>この部位を削除</button>
+          </div>`;
+        }
+      }
+      partExtra.innerHTML = deleting + adding;
+    }
+
+    function renderFormParts(preserved) {
+      renderChips(formParts, state.formPart, "data-part");
+      renderPartExtra();
+      const next = document.getElementById("part-name");
+      if (state.focusPart) {
+        state.focusPart = false;
+        if (next) {
+          next.focus();
+          const end = next.value.length;
+          next.setSelectionRange(end, end);
+        }
+        return;
+      }
+      if (state.focusName) {
+        state.focusName = false;
+        nameInput.focus();
+        return;
+      }
+      if (preserved && preserved.focused && next) {
+        next.focus();
+        const end = next.value.length;
+        const start = Math.min(preserved.start ?? end, end);
+        const stop = Math.min(preserved.end ?? end, end);
+        next.setSelectionRange(start, stop);
+      }
     }
 
     function renderProgress() {
@@ -1178,7 +1394,7 @@
           <div>
             <p class="ord">${order}</p>
             <h2>${esc(exercise.name)}</h2>
-            <div class="part" style="color:${PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</div>
+            <div class="part" style="color:${colorOf(exercise.part)}"><i style="background:${colorOf(exercise.part)}"></i>${esc(exercise.part)}</div>
             ${note}
           </div>
           <button type="button" class="text-btn" data-pick="${index}">変更</button>
@@ -1217,7 +1433,7 @@
             <span class="box"></span>
             <span>
               <strong>${esc(exercise.name)}</strong>
-              <span class="part" style="color:${item.done ? "inherit" : PART_COLOR[exercise.part]}"><i style="background:${PART_COLOR[exercise.part]}"></i>${esc(exercise.part)}</span>
+              <span class="part" style="color:${item.done ? "inherit" : colorOf(exercise.part)}"><i style="background:${colorOf(exercise.part)}"></i>${esc(exercise.part)}</span>
             </span>
           </button>
           <button type="button" class="text-btn" data-remove="${esc(item.key)}">外す</button>
@@ -1225,25 +1441,28 @@
       }).join("") || `<p class="empty-copy">種目を末尾に追加すると、ここに並びます。</p>`;
     }
 
-    function renderGroups(list, rowHtml) {
-      const groups = PARTS.map((part) => ({
+    function renderGroups(list, rowHtml, filter) {
+      const groups = allParts().map((part) => ({
         part,
         items: list.filter((item) => item.part === part)
       })).filter((group) => group.items.length);
       if (!groups.length) {
-        const message = state.exercises.length ? "この部位の種目はありません" : "種目はまだありません";
+        const message = filter === null && state.exercises.length === 0
+          ? "種目はまだありません"
+          : "この部位の種目はありません";
         return `<p class="empty-copy">${message}</p>`;
       }
       return groups.map((group) => `
-        <h3 class="group-label" style="color:${PART_COLOR[group.part]}">${esc(group.part)}</h3>
+        <h3 class="group-label" style="color:${colorOf(group.part)}">${esc(group.part)}</h3>
         ${group.items.map(rowHtml).join("")}
       `).join("");
     }
 
     function renderDb() {
+      const preserved = capturePartDraft();
       renderChips(dbFilters, state.dbFilter, "data-filter");
-      renderChips(formParts, state.formPart, "data-part");
-      const visible = state.dbFilter === "all"
+      renderFormParts(preserved);
+      const visible = state.dbFilter === null
         ? state.exercises
         : state.exercises.filter((item) => item.part === state.dbFilter);
       dbList.innerHTML = renderGroups(visible, (item) => {
@@ -1252,11 +1471,11 @@
           ? `<button type="button" class="text-btn danger" data-delete="${item.id}">削除する</button><button type="button" class="text-btn" data-cancel-delete>やめる</button>`
           : `<button type="button" class="text-btn" data-edit="${item.id}">編集</button><button type="button" class="text-btn" data-arm="${item.id}">削除</button>`;
         return `<article class="ex-row">
-          <i class="dot" style="background:${PART_COLOR[item.part]}"></i>
+          <i class="dot" style="background:${colorOf(item.part)}"></i>
           <div><h3>${esc(item.name)}</h3>${note}</div>
           <div class="row-actions">${actions}</div>
         </article>`;
-      });
+      }, state.dbFilter);
     }
 
     function renderPicker() {
@@ -1266,7 +1485,7 @@
       const used = appending
         ? new Set()
         : new Set(currentMenu().filter((id, index) => id && index !== state.pickerSlot));
-      const visible = state.pickerFilter === "all"
+      const visible = state.pickerFilter === null
         ? state.exercises
         : state.exercises.filter((item) => item.part === state.pickerFilter);
       pickerList.innerHTML = renderGroups(visible, (item) => {
@@ -1275,7 +1494,7 @@
           <span>${esc(item.name)}</span>
           ${taken ? "<small>選択中</small>" : ""}
         </button>`;
-      });
+      }, state.pickerFilter);
     }
 
     function renderTimer() {
@@ -1313,15 +1532,30 @@
       window.scrollTo(0, 0);
     }
 
+    function releaseExercise(id) {
+      for (const [shape, list] of Object.entries(state.menus)) {
+        list.forEach((current, index) => {
+          if (current === id) {
+            list[index] = null;
+            clearSlotChecks(shape, index);
+          }
+        });
+      }
+      state.session = state.session.filter((item) => item.exerciseId !== id);
+    }
+
     function resetForm() {
+      const partInput = document.getElementById("part-name");
+      if (partInput && state.addingPart) state.partDraft = partInput.value;
       state.editingId = null;
       state.formPart = "胸";
+      state.partDeleteArmed = false;
       form.reset();
       formTitle.textContent = "種目を追加";
       saveBtn.textContent = "登録する";
       cancelEdit.hidden = true;
       formError.hidden = true;
-      renderChips(formParts, state.formPart, "data-part");
+      renderFormParts(null);
     }
 
     function startEdit(id) {
@@ -1330,6 +1564,7 @@
       state.editingId = id;
       state.formPart = exercise.part;
       state.deleteArmed = null;
+      state.partDeleteArmed = false;
       nameInput.value = exercise.name;
       noteInput.value = exercise.note;
       formTitle.textContent = "種目を編集";
@@ -1340,6 +1575,81 @@
       renderDb();
       form.scrollIntoView({ block: "nearest" });
       nameInput.focus();
+    }
+
+    function commitPart() {
+      capturePartDraft();
+      const name = normalize(state.partDraft).slice(0, 16);
+      if (!name) {
+        state.partError = "部位名を入力してください";
+        state.focusPart = true;
+        renderDb();
+        return;
+      }
+      if (name === "すべて") {
+        state.partError = "すべて、という名前は使えません";
+        state.focusPart = true;
+        renderDb();
+        return;
+      }
+      if (allParts().includes(name)) {
+        state.partError = "同じ部位があります";
+        state.focusPart = true;
+        renderDb();
+        return;
+      }
+      state.customParts.push({ name, color: nextColor() });
+      state.formPart = name;
+      state.addingPart = false;
+      state.partDraft = "";
+      state.partError = "";
+      state.partDeleteArmed = false;
+      state.focusName = true;
+      dbStatus.textContent = `${name}を追加しました`;
+      saveParts();
+      renderDb();
+    }
+
+    function deletePart() {
+      const name = state.formPart;
+      if (!isCustomPart(name)) return;
+      const removedIds = new Set();
+      for (const exercise of state.exercises) {
+        if (exercise.part !== name) continue;
+        removedIds.add(exercise.id);
+        releaseExercise(exercise.id);
+      }
+      const editingRemoved = Boolean(state.editingId && removedIds.has(state.editingId));
+      state.exercises = state.exercises.filter((item) => item.part !== name);
+      state.customParts = state.customParts.filter((item) => item.name !== name);
+      if (state.dbFilter === name) state.dbFilter = null;
+      if (state.pickerFilter === name) state.pickerFilter = null;
+      if (state.deleteArmed && removedIds.has(state.deleteArmed)) state.deleteArmed = null;
+      if (editingRemoved) {
+        resetForm();
+      } else if (state.editingId) {
+        const editing = exerciseById(state.editingId);
+        state.formPart = editing ? editing.part : "胸";
+        state.partDeleteArmed = false;
+      } else {
+        state.formPart = "胸";
+        state.partDeleteArmed = false;
+      }
+      dbStatus.textContent = `${name}を削除しました`;
+      if (saveExercises()) {
+        saveParts();
+        saveMenu();
+        saveTimer();
+      }
+      renderDb();
+      renderMenu();
+      renderSession();
+      if (picker.open) renderPicker();
+    }
+
+    function filterValue(button) {
+      if (button.hasAttribute("data-all")) return null;
+      return button.getAttribute("data-filter") ?? button.getAttribute("data-pick-filter");
     }
 
     document.querySelector(".tabs").addEventListener("click", (event) => {
@@ -1389,7 +1699,7 @@
     function openPicker(slot) {
       state.pickerMode = "menu";
       state.pickerSlot = slot;
-      state.pickerFilter = "all";
+      state.pickerFilter = null;
       renderPicker();
       picker.showModal();
     }
@@ -1397,7 +1707,7 @@
     document.getElementById("add-session").addEventListener("click", () => {
       state.pickerMode = "timer";
       state.pickerSlot = null;
-      state.pickerFilter = "all";
+      state.pickerFilter = null;
       renderPicker();
       picker.showModal();
     });
@@ -1408,9 +1718,9 @@
     });
 
     pickerFilters.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-pick-filter]");
+      const button = event.target.closest("[data-pick-filter], [data-all]");
       if (!button) return;
-      state.pickerFilter = button.dataset.pickFilter;
+      state.pickerFilter = filterValue(button);
       renderPicker();
     });
 
@@ -1437,17 +1747,70 @@
     });
 
     dbFilters.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-filter]");
+      const button = event.target.closest("[data-filter], [data-all]");
       if (!button) return;
-      state.dbFilter = button.dataset.filter;
+      state.dbFilter = filterValue(button);
       renderDb();
     });
 
     formParts.addEventListener("click", (event) => {
+      const add = event.target.closest("[data-add-part]");
+      if (add) {
+        state.addingPart = true;
+        state.partDraft = "";
+        state.partError = "";
+        state.partDeleteArmed = false;
+        state.focusPart = true;
+        renderFormParts(null);
+        return;
+      }
       const button = event.target.closest("[data-part]");
       if (!button) return;
-      state.formPart = button.dataset.part;
-      renderChips(formParts, state.formPart, "data-part");
+      const preserved = capturePartDraft();
+      state.formPart = button.getAttribute("data-part");
+      state.partDeleteArmed = false;
+      renderFormParts(preserved);
+    });
+
+    partExtra.addEventListener("click", (event) => {
+      if (event.target.closest("[data-commit-part]")) {
+        commitPart();
+        return;
+      }
+      if (event.target.closest("[data-cancel-part]")) {
+        state.addingPart = false;
+        state.partDraft = "";
+        state.partError = "";
+        renderFormParts(null);
+        return;
+      }
+      if (event.target.closest("[data-arm-part]")) {
+        const preserved = capturePartDraft();
+        state.partDeleteArmed = true;
+        renderFormParts(preserved);
+        return;
+      }
+      if (event.target.closest("[data-cancel-part-delete]")) {
+        const preserved = capturePartDraft();
+        state.partDeleteArmed = false;
+        renderFormParts(preserved);
+        return;
+      }
+      if (event.target.closest("[data-delete-part]")) deletePart();
+    });
+
+    partExtra.addEventListener("compositionend", (event) => {
+      if (!event.target || event.target.id !== "part-name") return;
+      ignorePartEnter = true;
+      setTimeout(() => { ignorePartEnter = false; }, 0);
+    });
+
+    partExtra.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.target.id !== "part-name") return;
+      if (event.isComposing || event.keyCode === 229) return;
+      event.preventDefault();
+      if (ignorePartEnter) return;
+      commitPart();
     });
 
     form.addEventListener("submit", (event) => {
@@ -1470,7 +1833,7 @@
       } else {
         state.exercises.push({ id: newExerciseId(), name, part: state.formPart, note });
         dbStatus.textContent = `${name}を登録しました`;
-        if (state.dbFilter !== "all" && state.dbFilter !== state.formPart) state.dbFilter = state.formPart;
+        if (state.dbFilter !== null && state.dbFilter !== state.formPart) state.dbFilter = state.formPart;
       }
       saveExercises();
       resetForm();
@@ -1506,15 +1869,7 @@
       const id = remove.dataset.delete;
       const exercise = exerciseById(id);
       state.exercises = state.exercises.filter((item) => item.id !== id);
-      for (const [shape, list] of Object.entries(state.menus)) {
-        list.forEach((current, index) => {
-          if (current === id) {
-            list[index] = null;
-            clearSlotChecks(shape, index);
-          }
-        });
-      }
-      state.session = state.session.filter((item) => item.exerciseId !== id);
+      releaseExercise(id);
       state.deleteArmed = null;
       if (state.editingId === id) resetForm();
       dbStatus.textContent = exercise ? `${exercise.name}を削除しました` : "";
@@ -1639,7 +1994,6 @@
     restInput.value = String(loadedTimer.rest);
     roundInput.value = String(loadedTimer.rounds);
 
-    renderChips(formParts, state.formPart, "data-part");
     renderMenu();
     renderSession();
     renderDb();
