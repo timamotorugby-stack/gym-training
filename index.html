@@ -619,7 +619,7 @@
 
     .shape {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       margin-bottom: 16px;
     }
@@ -722,6 +722,8 @@
     .session-row[aria-pressed="true"] .part { color: var(--green); }
 
     @media (min-width: 768px) {
+      .shape { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
       .timer-layout {
         grid-template-columns: minmax(0, 1fr) 320px;
         align-items: start;
@@ -767,6 +769,7 @@
           <button type="button" data-shape="same" aria-pressed="true"><strong>同じ5種目</strong><span>それぞれ3セット</span></button>
           <button type="button" data-shape="ten" aria-pressed="false"><strong>10種目</strong><span>違う5種目×2</span></button>
           <button type="button" data-shape="fifteen" aria-pressed="false"><strong>15種目</strong><span>違う5種目×3</span></button>
+          <button type="button" data-shape="free" aria-pressed="false"><strong>メニューフリー</strong><span>順番に進める</span></button>
         </div>
         <p class="form-error" id="menu-status" role="status" hidden></p>
         <div class="progress">
@@ -778,6 +781,7 @@
         </div>
         <div class="workout-actions" id="menu-actions"></div>
         <div id="menu-list"></div>
+        <button class="add-end" type="button" id="add-free" hidden>末尾に追加</button>
       </div>
     </section>
 
@@ -873,6 +877,7 @@
       ten: { count: 10, setsEach: 1, groups: 2, lead: "違う5種目を、2セット行います。" },
       fifteen: { count: 15, setsEach: 1, groups: 3, lead: "違う5種目を、3セット行います。" }
     };
+    const FREE_LEAD = "時間を区切らず、種目を順番に行います。";
     const LEADS = {
       db: "種目を登録し、部位ごとに探します。",
       timer: "ワークとレストを決めて、種目を末尾に足していきます。"
@@ -989,6 +994,31 @@
       return Array.from({ length: count }, () => null);
     }
 
+    function newSessionKey() {
+      sessionSeq += 1;
+      return `s-${Date.now().toString(36)}-${sessionSeq.toString(36)}`;
+    }
+
+    function normalizeSession(source, known) {
+      const seen = new Set();
+      const counts = new Map();
+      const session = [];
+      if (!Array.isArray(source)) return session;
+      for (const item of source) {
+        if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+        if (typeof item.exerciseId !== "string" || !item.exerciseId) continue;
+        if (known && !known.has(item.exerciseId)) continue;
+        const count = counts.get(item.exerciseId) || 0;
+        if (count >= 2) continue;
+        counts.set(item.exerciseId, count + 1);
+        let key = typeof item.key === "string" && item.key ? item.key : newSessionKey();
+        if (seen.has(key)) key = newSessionKey();
+        seen.add(key);
+        session.push({ key, exerciseId: item.exerciseId, done: item.done === true });
+      }
+      return session;
+    }
+
     function checkSlot(key) {
       const same = /^same-(\d+)-(\d+)$/.exec(key);
       if (same) {
@@ -1013,6 +1043,7 @@
           ten: emptyMenu(SHAPES.ten.count),
           fifteen: emptyMenu(SHAPES.fifteen.count)
         },
+        free: [],
         checks: {},
         repaired: false
       };
@@ -1028,7 +1059,9 @@
         return { ...blank, repaired: true };
       }
 
-      const menuShape = stored.menuShape && SHAPES[stored.menuShape] ? stored.menuShape : "same";
+      const menuShape = stored.menuShape === "free" || (stored.menuShape && SHAPES[stored.menuShape])
+        ? stored.menuShape
+        : "same";
       const known = new Set(exercises.map((item) => item.id));
       const menus = {};
       for (const [shape, spec] of Object.entries(SHAPES)) {
@@ -1045,6 +1078,7 @@
         });
       }
 
+      const free = normalizeSession(stored.free, exercisesReadable ? known : null);
       const checks = {};
       const sourceChecks = stored.checks && typeof stored.checks === "object" && !Array.isArray(stored.checks)
         ? stored.checks
@@ -1056,18 +1090,14 @@
         checks[key] = true;
       }
 
-      const normalized = JSON.stringify({ menuShape, menus, checks });
+      const normalized = JSON.stringify({ menuShape, menus, free, checks });
       const original = JSON.stringify({
         menuShape: stored.menuShape,
         menus: stored.menus,
+        free: stored.free,
         checks: stored.checks
       });
-      return { menuShape, menus, checks, repaired: normalized !== original };
-    }
-
-    function newSessionKey() {
-      sessionSeq += 1;
-      return `s-${Date.now().toString(36)}-${sessionSeq.toString(36)}`;
+      return { menuShape, menus, free, checks, repaired: normalized !== original };
     }
 
     function loadTimer(exercises) {
@@ -1088,22 +1118,7 @@
       const rest = readStoredNumber(stored.rest, 0, 600, 10);
       const rounds = readStoredNumber(stored.rounds, 1, 99, 8);
       const known = new Set(exercises.map((item) => item.id));
-      const source = Array.isArray(stored.session) ? stored.session : [];
-      const seen = new Set();
-      const counts = new Map();
-      const session = [];
-      for (const item of source) {
-        if (!item || typeof item !== "object" || Array.isArray(item)) continue;
-        if (typeof item.exerciseId !== "string" || !item.exerciseId) continue;
-        if (exercisesReadable && !known.has(item.exerciseId)) continue;
-        const count = counts.get(item.exerciseId) || 0;
-        if (count >= 2) continue;
-        counts.set(item.exerciseId, count + 1);
-        let key = typeof item.key === "string" && item.key ? item.key : newSessionKey();
-        if (seen.has(key)) key = newSessionKey();
-        seen.add(key);
-        session.push({ key, exerciseId: item.exerciseId, done: item.done === true });
-      }
+      const session = normalizeSession(stored.session, exercisesReadable ? known : null);
 
       const normalized = JSON.stringify({ work, rest, rounds, session });
       const original = JSON.stringify({
@@ -1156,6 +1171,11 @@
         localStorage.setItem(MENU_KEY, JSON.stringify({
           menuShape: state.menuShape,
           menus: state.menus,
+          free: state.free.map((item) => ({
+            key: item.key,
+            exerciseId: item.exerciseId,
+            done: item.done === true
+          })),
           checks
         }));
         if (menuStatus) {
@@ -1183,6 +1203,7 @@
       customParts: loadedCustomParts,
       menuShape: loadedMenu.menuShape,
       menus: loadedMenu.menus,
+      free: loadedMenu.free,
       checks: loadedMenu.checks,
       session: loadedTimer.session,
       mode: "menu",
@@ -1253,6 +1274,14 @@
 
     function shapeOf() {
       return SHAPES[state.menuShape];
+    }
+
+    function isFreeMenu() {
+      return state.menuShape === "free";
+    }
+
+    function menuLead() {
+      return isFreeMenu() ? FREE_LEAD : shapeOf().lead;
     }
 
     function readNumber(input, min, max, fallback) {
@@ -1419,7 +1448,7 @@
       const resetKey = `${mode}-reset`;
       const clearKey = `${mode}-clear`;
       if (state.actionArmed === resetKey) {
-        const note = mode === "menu" ? "セットのチェックを外します" : "完了チェックを外します";
+        const note = mode === "menu" && !isFreeMenu() ? "セットのチェックを外します" : "完了チェックを外します";
         target.innerHTML = `<p class="confirm-note">${note}</p>
           <button type="button" class="text-btn" data-arm-action="confirm-reset">リセットする</button>
           <button type="button" class="text-btn" data-arm-action="cancel">やめる</button>`;
@@ -1432,27 +1461,35 @@
         return;
       }
       const canReset = mode === "menu"
-        ? hasShapeChecks(state.menuShape)
+        ? (isFreeMenu() ? state.free.some((item) => item.done) : hasShapeChecks(state.menuShape))
         : state.session.some((item) => item.done);
       const canClear = mode === "menu"
-        ? currentMenu().some((id) => id)
+        ? (isFreeMenu() ? state.free.length > 0 : currentMenu().some((id) => id))
         : state.session.length > 0;
       target.innerHTML = `<button type="button" class="text-btn" data-arm-action="reset" ${canReset ? "" : "disabled"}>進行をリセット</button>
         <button type="button" class="text-btn" data-arm-action="clear" ${canClear ? "" : "disabled"}>メニューをクリア</button>`;
     }
 
     function resetMenuProgress() {
-      deleteShapeChecks(state.menuShape);
+      if (isFreeMenu()) {
+        for (const item of state.free) item.done = false;
+      } else {
+        deleteShapeChecks(state.menuShape);
+      }
       state.actionArmed = null;
       saveMenu();
       renderMenu();
     }
 
     function clearCurrentMenu() {
-      const shape = state.menuShape;
-      const list = state.menus[shape];
-      for (let index = 0; index < list.length; index += 1) list[index] = null;
-      deleteShapeChecks(shape);
+      if (isFreeMenu()) {
+        state.free = [];
+      } else {
+        const shape = state.menuShape;
+        const list = state.menus[shape];
+        for (let index = 0; index < list.length; index += 1) list[index] = null;
+        deleteShapeChecks(shape);
+      }
       state.actionArmed = null;
       saveMenu();
       renderMenu();
@@ -1503,6 +1540,16 @@
     }
 
     function renderProgress() {
+      if (isFreeMenu()) {
+        const done = state.free.filter((item) => item.done).length;
+        const total = state.free.length;
+        progressLabel.textContent = "種目";
+        document.getElementById("progress-count").textContent = total === 0
+          ? "0"
+          : done === total ? `${total}種目完了` : `${done} / ${total}`;
+        document.getElementById("progress-fill").style.width = `${total ? (done / total) * 100 : 0}%`;
+        return;
+      }
       const shape = shapeOf();
       const prefix = `${state.menuShape}-`;
       const done = Object.entries(state.checks).filter(([key, on]) => on && key.startsWith(prefix)).length;
@@ -1541,12 +1588,35 @@
       </article>`;
     }
 
+    function sessionListHtml(items) {
+      const rows = items.map((item) => {
+        const exercise = exerciseById(item.exerciseId);
+        if (!exercise) return "";
+        return `<div class="session-item">
+          <button type="button" class="session-row" data-session="${esc(item.key)}" aria-pressed="${item.done}">
+            <span class="box"></span>
+            <span>
+              <strong>${esc(exercise.name)}</strong>
+              <span class="part" style="color:${item.done ? "inherit" : colorOf(exercise.part)}"><i style="background:${colorOf(exercise.part)}"></i>${esc(exercise.part)}</span>
+            </span>
+          </button>
+          <button type="button" class="text-btn" data-remove="${esc(item.key)}">外す</button>
+        </div>`;
+      }).join("");
+      return rows || `<p class="empty-copy">種目を末尾に追加すると、ここに並びます。</p>`;
+    }
+
     function renderMenu() {
       renderProgress();
       renderWorkoutActions("menu");
+      document.getElementById("add-free").hidden = !isFreeMenu();
       document.querySelectorAll("#shape-switch button").forEach((button) => {
         button.setAttribute("aria-pressed", String(button.dataset.shape === state.menuShape));
       });
+      if (isFreeMenu()) {
+        menuList.innerHTML = sessionListHtml(state.free);
+        return;
+      }
       const list = currentMenu();
       const groups = shapeOf().groups;
       if (groups === 1) {
@@ -1565,20 +1635,7 @@
       document.getElementById("session-count").textContent = state.session.length
         ? `${done} / ${state.session.length}`
         : "0";
-      timerMenu.innerHTML = state.session.map((item) => {
-        const exercise = exerciseById(item.exerciseId);
-        if (!exercise) return "";
-        return `<div class="session-item">
-          <button type="button" class="session-row" data-session="${esc(item.key)}" aria-pressed="${item.done}">
-            <span class="box"></span>
-            <span>
-              <strong>${esc(exercise.name)}</strong>
-              <span class="part" style="color:${item.done ? "inherit" : colorOf(exercise.part)}"><i style="background:${colorOf(exercise.part)}"></i>${esc(exercise.part)}</span>
-            </span>
-          </button>
-          <button type="button" class="text-btn" data-remove="${esc(item.key)}">外す</button>
-        </div>`;
-      }).join("") || `<p class="empty-copy">種目を末尾に追加すると、ここに並びます。</p>`;
+      timerMenu.innerHTML = sessionListHtml(state.session);
     }
 
     function renderGroups(list, rowHtml, filter) {
@@ -1619,11 +1676,12 @@
     }
 
     function renderPicker() {
-      const appending = state.pickerMode === "timer";
+      const appending = state.pickerMode === "timer" || state.pickerMode === "free";
       pickerTitle.textContent = appending ? "末尾に追加" : `${state.pickerSlot + 1}種目目を選ぶ`;
       renderChips(pickerFilters, state.pickerFilter, "data-pick-filter");
+      const selected = state.pickerMode === "timer" ? state.session : state.free;
       const counts = appending
-        ? selectionCounts(state.session.map((item) => item.exerciseId))
+        ? selectionCounts(selected.map((item) => item.exerciseId))
         : selectionCounts(currentMenu(), state.pickerSlot);
       const visible = state.pickerFilter === null
         ? state.exercises
@@ -1668,7 +1726,7 @@
         renderWorkoutActions("timer");
       }
       state.mode = mode;
-      lead.textContent = mode === "menu" ? shapeOf().lead : LEADS[mode];
+      lead.textContent = mode === "menu" ? menuLead() : LEADS[mode];
       for (const name of ["menu", "db", "timer"]) {
         const tab = document.getElementById(`tab-${name}`);
         const panel = document.getElementById(`panel-${name}`);
@@ -1689,6 +1747,7 @@
         });
       }
       state.session = state.session.filter((item) => item.exerciseId !== id);
+      state.free = state.free.filter((item) => item.exerciseId !== id);
     }
 
     function resetForm() {
@@ -1813,12 +1872,29 @@
       if (!button || button.dataset.shape === state.menuShape) return;
       state.menuShape = button.dataset.shape;
       state.actionArmed = null;
-      if (state.mode === "menu") lead.textContent = shapeOf().lead;
+      if (state.mode === "menu") lead.textContent = menuLead();
       saveMenu();
       renderMenu();
     });
 
     menuList.addEventListener("click", (event) => {
+      if (isFreeMenu()) {
+        const remove = event.target.closest("[data-remove]");
+        if (remove) {
+          state.free = state.free.filter((item) => item.key !== remove.dataset.remove);
+          saveMenu();
+          renderMenu();
+          return;
+        }
+        const row = event.target.closest("[data-session]");
+        if (!row) return;
+        const item = state.free.find((entry) => entry.key === row.dataset.session);
+        if (!item) return;
+        item.done = !item.done;
+        saveMenu();
+        renderMenu();
+        return;
+      }
       const check = event.target.closest("[data-check]");
       if (check) {
         state.checks[check.dataset.check] = !state.checks[check.dataset.check];
@@ -1863,6 +1939,14 @@
       picker.showModal();
     });
 
+    document.getElementById("add-free").addEventListener("click", () => {
+      state.pickerMode = "free";
+      state.pickerSlot = null;
+      state.pickerFilter = null;
+      renderPicker();
+      picker.showModal();
+    });
+
     document.getElementById("close-picker").addEventListener("click", () => picker.close());
     picker.addEventListener("click", (event) => {
       if (event.target === picker) picker.close();
@@ -1879,13 +1963,20 @@
       const button = event.target.closest("[data-choose]");
       if (!button || button.disabled) return;
       const id = button.dataset.choose;
-      if (state.pickerMode === "timer") {
-        const counts = selectionCounts(state.session.map((item) => item.exerciseId));
+      if (state.pickerMode === "timer" || state.pickerMode === "free") {
+        const list = state.pickerMode === "timer" ? state.session : state.free;
+        const counts = selectionCounts(list.map((item) => item.exerciseId));
         if ((counts.get(id) || 0) >= 2) return;
-        state.session.push({ key: newSessionKey(), exerciseId: id, done: false });
-        saveTimer();
-        picker.close();
-        renderSession();
+        list.push({ key: newSessionKey(), exerciseId: id, done: false });
+        if (state.pickerMode === "timer") {
+          saveTimer();
+          picker.close();
+          renderSession();
+        } else {
+          saveMenu();
+          picker.close();
+          renderMenu();
+        }
         return;
       }
       const slot = state.pickerSlot;
