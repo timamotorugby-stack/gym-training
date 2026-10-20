@@ -207,6 +207,25 @@
     }
 
     .text-btn:hover { color: var(--ink); }
+    .text-btn:disabled,
+    .text-btn:disabled:hover { color: #c2bbb0; cursor: default; }
+
+    .workout-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 4px;
+      align-items: center;
+      min-height: 40px;
+      margin: -8px 0 8px;
+    }
+
+    .workout-actions .confirm-note {
+      flex: 1 1 100%;
+      margin: 0 0 2px;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
 
     .sets { margin-top: 12px; display: grid; gap: 6px; }
 
@@ -757,6 +776,7 @@
           </div>
           <div class="bar" aria-hidden="true"><span id="progress-fill"></span></div>
         </div>
+        <div class="workout-actions" id="menu-actions"></div>
         <div id="menu-list"></div>
       </div>
     </section>
@@ -798,6 +818,7 @@
               <span id="session-count">0 / 0</span>
             </div>
           </div>
+          <div class="workout-actions" id="timer-actions"></div>
           <div id="timer-menu"></div>
           <button class="add-end" type="button" id="add-session">末尾に追加</button>
         </div>
@@ -1012,12 +1033,14 @@
       const menus = {};
       for (const [shape, spec] of Object.entries(SHAPES)) {
         const source = stored.menus && Array.isArray(stored.menus[shape]) ? stored.menus[shape] : [];
-        const seen = new Set();
+        const counts = new Map();
         menus[shape] = Array.from({ length: spec.count }, (_, index) => {
           const id = source[index];
-          if (typeof id !== "string" || !id || seen.has(id)) return null;
+          if (typeof id !== "string" || !id) return null;
           if (exercisesReadable && !known.has(id)) return null;
-          seen.add(id);
+          const count = counts.get(id) || 0;
+          if (count >= 2) return null;
+          counts.set(id, count + 1);
           return id;
         });
       }
@@ -1067,11 +1090,15 @@
       const known = new Set(exercises.map((item) => item.id));
       const source = Array.isArray(stored.session) ? stored.session : [];
       const seen = new Set();
+      const counts = new Map();
       const session = [];
       for (const item of source) {
         if (!item || typeof item !== "object" || Array.isArray(item)) continue;
         if (typeof item.exerciseId !== "string" || !item.exerciseId) continue;
         if (exercisesReadable && !known.has(item.exerciseId)) continue;
+        const count = counts.get(item.exerciseId) || 0;
+        if (count >= 2) continue;
+        counts.set(item.exerciseId, count + 1);
         let key = typeof item.key === "string" && item.key ? item.key : newSessionKey();
         if (seen.has(key)) key = newSessionKey();
         seen.add(key);
@@ -1172,6 +1199,7 @@
       partDeleteArmed: false,
       focusPart: false,
       focusName: false,
+      actionArmed: null,
       timer: { phase: "idle", round: 1, remainingMs: loadedTimer.work * 1000, running: false }
     };
     let ignorePartEnter = false;
@@ -1364,6 +1392,116 @@
       }
     }
 
+    function hasShapeChecks(shape) {
+      const prefix = `${shape}-`;
+      return Object.keys(state.checks).some((key) => state.checks[key] === true && key.startsWith(prefix));
+    }
+
+    function deleteShapeChecks(shape) {
+      const prefix = `${shape}-`;
+      for (const key of Object.keys(state.checks)) {
+        if (key.startsWith(prefix)) delete state.checks[key];
+      }
+    }
+
+    function selectionCounts(ids, exceptIndex) {
+      const counts = new Map();
+      ids.forEach((id, index) => {
+        if (!id || index === exceptIndex) return;
+        counts.set(id, (counts.get(id) || 0) + 1);
+      });
+      return counts;
+    }
+
+    function renderWorkoutActions(mode) {
+      const target = document.getElementById(mode === "menu" ? "menu-actions" : "timer-actions");
+      if (!target) return;
+      const resetKey = `${mode}-reset`;
+      const clearKey = `${mode}-clear`;
+      if (state.actionArmed === resetKey) {
+        const note = mode === "menu" ? "セットのチェックを外します" : "完了チェックを外します";
+        target.innerHTML = `<p class="confirm-note">${note}</p>
+          <button type="button" class="text-btn" data-arm-action="confirm-reset">リセットする</button>
+          <button type="button" class="text-btn" data-arm-action="cancel">やめる</button>`;
+        return;
+      }
+      if (state.actionArmed === clearKey) {
+        target.innerHTML = `<p class="confirm-note">選んだ種目をすべて外します</p>
+          <button type="button" class="text-btn danger" data-arm-action="confirm-clear">クリアする</button>
+          <button type="button" class="text-btn" data-arm-action="cancel">やめる</button>`;
+        return;
+      }
+      const canReset = mode === "menu"
+        ? hasShapeChecks(state.menuShape)
+        : state.session.some((item) => item.done);
+      const canClear = mode === "menu"
+        ? currentMenu().some((id) => id)
+        : state.session.length > 0;
+      target.innerHTML = `<button type="button" class="text-btn" data-arm-action="reset" ${canReset ? "" : "disabled"}>進行をリセット</button>
+        <button type="button" class="text-btn" data-arm-action="clear" ${canClear ? "" : "disabled"}>メニューをクリア</button>`;
+    }
+
+    function resetMenuProgress() {
+      deleteShapeChecks(state.menuShape);
+      state.actionArmed = null;
+      saveMenu();
+      renderMenu();
+    }
+
+    function clearCurrentMenu() {
+      const shape = state.menuShape;
+      const list = state.menus[shape];
+      for (let index = 0; index < list.length; index += 1) list[index] = null;
+      deleteShapeChecks(shape);
+      state.actionArmed = null;
+      saveMenu();
+      renderMenu();
+    }
+
+    function resetTimerProgress() {
+      for (const item of state.session) item.done = false;
+      state.actionArmed = null;
+      saveTimer();
+      renderSession();
+    }
+
+    function clearTimerMenu() {
+      state.session = [];
+      state.actionArmed = null;
+      saveTimer();
+      renderSession();
+    }
+
+    function onWorkoutAction(mode, event) {
+      const button = event.target.closest("[data-arm-action]");
+      if (!button || button.disabled) return;
+      const action = button.dataset.armAction;
+      if (action === "reset") {
+        state.actionArmed = `${mode}-reset`;
+        renderWorkoutActions(mode);
+        return;
+      }
+      if (action === "clear") {
+        state.actionArmed = `${mode}-clear`;
+        renderWorkoutActions(mode);
+        return;
+      }
+      if (action === "cancel") {
+        state.actionArmed = null;
+        renderWorkoutActions(mode);
+        return;
+      }
+      if (action === "confirm-reset") {
+        if (mode === "menu") resetMenuProgress();
+        else resetTimerProgress();
+        return;
+      }
+      if (action === "confirm-clear") {
+        if (mode === "menu") clearCurrentMenu();
+        else clearTimerMenu();
+      }
+    }
+
     function renderProgress() {
       const shape = shapeOf();
       const prefix = `${state.menuShape}-`;
@@ -1405,6 +1543,7 @@
 
     function renderMenu() {
       renderProgress();
+      renderWorkoutActions("menu");
       document.querySelectorAll("#shape-switch button").forEach((button) => {
         button.setAttribute("aria-pressed", String(button.dataset.shape === state.menuShape));
       });
@@ -1421,6 +1560,7 @@
     }
 
     function renderSession() {
+      renderWorkoutActions("timer");
       const done = state.session.filter((item) => item.done).length;
       document.getElementById("session-count").textContent = state.session.length
         ? `${done} / ${state.session.length}`
@@ -1482,17 +1622,19 @@
       const appending = state.pickerMode === "timer";
       pickerTitle.textContent = appending ? "末尾に追加" : `${state.pickerSlot + 1}種目目を選ぶ`;
       renderChips(pickerFilters, state.pickerFilter, "data-pick-filter");
-      const used = appending
-        ? new Set()
-        : new Set(currentMenu().filter((id, index) => id && index !== state.pickerSlot));
+      const counts = appending
+        ? selectionCounts(state.session.map((item) => item.exerciseId))
+        : selectionCounts(currentMenu(), state.pickerSlot);
       const visible = state.pickerFilter === null
         ? state.exercises
         : state.exercises.filter((item) => item.part === state.pickerFilter);
       pickerList.innerHTML = renderGroups(visible, (item) => {
-        const taken = used.has(item.id);
+        const count = counts.get(item.id) || 0;
+        const taken = count >= 2;
+        const hint = taken ? "2回選択中" : count === 1 ? "もう1回選べます" : "";
         return `<button type="button" class="pick" data-choose="${item.id}" ${taken ? "disabled" : ""}>
           <span>${esc(item.name)}</span>
-          ${taken ? "<small>選択中</small>" : ""}
+          ${hint ? `<small>${hint}</small>` : ""}
         </button>`;
       }, state.pickerFilter);
     }
@@ -1520,6 +1662,11 @@
     }
 
     function showMode(mode) {
+      if (state.actionArmed) {
+        state.actionArmed = null;
+        renderWorkoutActions("menu");
+        renderWorkoutActions("timer");
+      }
       state.mode = mode;
       lead.textContent = mode === "menu" ? shapeOf().lead : LEADS[mode];
       for (const name of ["menu", "db", "timer"]) {
@@ -1658,10 +1805,14 @@
       showMode(tab.id.replace("tab-", ""));
     });
 
+    document.getElementById("menu-actions").addEventListener("click", (event) => onWorkoutAction("menu", event));
+    document.getElementById("timer-actions").addEventListener("click", (event) => onWorkoutAction("timer", event));
+
     document.getElementById("shape-switch").addEventListener("click", (event) => {
       const button = event.target.closest("[data-shape]");
       if (!button || button.dataset.shape === state.menuShape) return;
       state.menuShape = button.dataset.shape;
+      state.actionArmed = null;
       if (state.mode === "menu") lead.textContent = shapeOf().lead;
       saveMenu();
       renderMenu();
@@ -1729,6 +1880,8 @@
       if (!button || button.disabled) return;
       const id = button.dataset.choose;
       if (state.pickerMode === "timer") {
+        const counts = selectionCounts(state.session.map((item) => item.exerciseId));
+        if ((counts.get(id) || 0) >= 2) return;
         state.session.push({ key: newSessionKey(), exerciseId: id, done: false });
         saveTimer();
         picker.close();
@@ -1737,6 +1890,8 @@
       }
       const slot = state.pickerSlot;
       const list = currentMenu();
+      const counts = selectionCounts(list, slot);
+      if ((counts.get(id) || 0) >= 2) return;
       if (list[slot] !== id) {
         list[slot] = id;
         clearSlotChecks(state.menuShape, slot);
