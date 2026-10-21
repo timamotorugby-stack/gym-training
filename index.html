@@ -227,6 +227,78 @@
       font-size: 0.9rem;
     }
 
+    .library { margin: 0 0 16px; }
+
+    .library-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0 8px;
+      min-height: 40px;
+    }
+
+    .library-label {
+      margin: 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .library-top .confirm-note {
+      flex: 1 1 180px;
+      margin: 0;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .library .chips { margin-top: 2px; }
+
+    .library .chip {
+      max-width: 100%;
+      height: auto;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      white-space: normal;
+      text-align: left;
+      line-height: 1.3;
+      overflow-wrap: anywhere;
+    }
+
+    .library-status {
+      margin: 0 0 16px;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .library-status:empty { display: none; }
+
+    #menu-library:not([hidden]) + .library-status:not(:empty) { margin-top: -8px; }
+
+    .library-save {
+      flex: 1 0 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .library-save input[type="text"] {
+      flex: 1 1 160px;
+      width: auto;
+      min-width: 0;
+      margin-top: 0;
+    }
+
+    .library-save .form-error {
+      flex: 1 0 100%;
+      margin: 0;
+    }
+
+    .timer-library { grid-column: 1 / -1; }
+    .timer-library .library { margin: 0; }
+    .timer-library .library-status { margin: 8px 0 0; }
+
     .sets { margin-top: 12px; display: grid; gap: 6px; }
 
     .set {
@@ -784,6 +856,7 @@
     }
 
     @media (max-width: 767px) {
+      .timer-library { order: -2; }
       .timer-card { order: -1; }
     }
 
@@ -809,6 +882,8 @@
 
     <section id="panel-menu" role="tabpanel" aria-labelledby="tab-menu">
       <div class="narrow">
+        <div id="menu-library" class="library" hidden></div>
+        <p class="library-status" id="menu-library-status" role="status"></p>
         <div class="shape" id="shape-switch" role="group" aria-label="メニューの形">
           <button type="button" data-shape="same" aria-pressed="true"><strong>同じ5種目</strong><span>それぞれ3セット</span></button>
           <button type="button" data-shape="ten" aria-pressed="false"><strong>10種目</strong><span>片方を2回</span></button>
@@ -866,6 +941,10 @@
     <section id="panel-timer" role="tabpanel" aria-labelledby="tab-timer" hidden>
       <p class="form-error" id="timer-status" role="status" hidden></p>
       <div class="timer-layout">
+        <div id="timer-library-slot" class="timer-library" hidden>
+          <div id="timer-library" class="library" hidden></div>
+          <p class="library-status" id="timer-library-status" role="status"></p>
+        </div>
         <div>
           <div class="progress">
             <div class="progress-top">
@@ -937,10 +1016,13 @@
     const PARTS_KEY = "gym-training-parts";
     const MENU_KEY = "gym-training-menu";
     const TIMER_KEY = "gym-training-timer";
+    const LIBRARY_KEY = "gym-training-library";
+    const LIBRARY_LIMIT = 30;
     let exercisesReadable = true;
     let exercisesRepaired = false;
     let exerciseSeq = 0;
     let sessionSeq = 0;
+    let librarySeq = 0;
 
     function newExerciseId() {
       exerciseSeq += 1;
@@ -1048,6 +1130,11 @@
     function newSessionKey() {
       sessionSeq += 1;
       return `s-${Date.now().toString(36)}-${sessionSeq.toString(36)}`;
+    }
+
+    function newLibraryId() {
+      librarySeq += 1;
+      return `lib-${Date.now().toString(36)}-${librarySeq.toString(36)}`;
     }
 
     function normalizeSession(source, known) {
@@ -1196,6 +1283,179 @@
       return { work, rest, rounds, session, repaired: normalized !== original };
     }
 
+    function cleanPresetId(value, seen) {
+      if (typeof value === "string" && value && !seen.has(value)) {
+        seen.add(value);
+        return { id: value, changed: false };
+      }
+      const id = newLibraryId();
+      seen.add(id);
+      return { id, changed: true };
+    }
+
+    function cleanPresetName(value, seen) {
+      if (typeof value !== "string") return { name: "", changed: true };
+      const name = normalize(value).slice(0, 24);
+      if (!name || seen.has(name)) return { name: "", changed: true };
+      seen.add(name);
+      return { name, changed: name !== value };
+    }
+
+    function cleanIdList(source, known, limit) {
+      let changed = !Array.isArray(source);
+      const counts = new Map();
+      const items = [];
+      const list = Array.isArray(source) ? source : [];
+      if (Array.isArray(source) && source.length > limit) changed = true;
+      for (const id of list) {
+        if (items.length >= limit) break;
+        if (typeof id !== "string" || !id || (known && !known.has(id))) {
+          changed = true;
+          continue;
+        }
+        const count = counts.get(id) || 0;
+        if (count >= 2) {
+          changed = true;
+          continue;
+        }
+        counts.set(id, count + 1);
+        items.push(id);
+      }
+      return { items, changed };
+    }
+
+    function cleanSlots(source, count, known) {
+      let changed = !Array.isArray(source) || source.length !== count;
+      const counts = new Map();
+      const slots = Array.from({ length: count }, (_, index) => {
+        const id = Array.isArray(source) ? source[index] : undefined;
+        if (id == null) return null;
+        if (id === "") {
+          changed = true;
+          return null;
+        }
+        if (typeof id !== "string" || (known && !known.has(id))) {
+          changed = true;
+          return null;
+        }
+        const used = counts.get(id) || 0;
+        if (used >= 2) {
+          changed = true;
+          return null;
+        }
+        counts.set(id, used + 1);
+        return id;
+      });
+      return { slots, changed };
+    }
+
+    function loadLibrary(exercises) {
+      const blank = { menu: [], timer: [], repaired: false };
+      let stored;
+      try {
+        const raw = localStorage.getItem(LIBRARY_KEY);
+        if (raw == null) return blank;
+        stored = JSON.parse(raw);
+      } catch (error) {
+        return { ...blank, repaired: true };
+      }
+      if (!stored || typeof stored !== "object" || Array.isArray(stored)) {
+        return { ...blank, repaired: true };
+      }
+
+      const known = exercisesReadable ? new Set(exercises.map((item) => item.id)) : null;
+      const ids = new Set();
+      let repaired = !Array.isArray(stored.menu) || !Array.isArray(stored.timer);
+      const menuNames = new Set();
+      const timerNames = new Set();
+      const menu = [];
+      const timer = [];
+      const menuSource = Array.isArray(stored.menu) ? stored.menu : [];
+      const timerSource = Array.isArray(stored.timer) ? stored.timer : [];
+
+      for (const item of menuSource) {
+        if (menu.length >= LIBRARY_LIMIT) {
+          repaired = true;
+          break;
+        }
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          repaired = true;
+          continue;
+        }
+        const shape = item.shape === "free" || SHAPES[item.shape] ? item.shape : "";
+        if (!shape) {
+          repaired = true;
+          continue;
+        }
+        const named = cleanPresetName(item.name, menuNames);
+        if (!named.name) {
+          repaired = true;
+          continue;
+        }
+        const identified = cleanPresetId(item.id, ids);
+        if (shape === "free") {
+          const cleaned = cleanIdList(item.items, known, 200);
+          if (!cleaned.items.length) {
+            repaired = true;
+            continue;
+          }
+          if (named.changed || identified.changed || cleaned.changed || item.slots || item.tenRepeat) repaired = true;
+          menu.push({ id: identified.id, name: named.name, shape: "free", items: cleaned.items });
+          continue;
+        }
+        const cleaned = cleanSlots(item.slots, SHAPES[shape].count, known);
+        if (!cleaned.slots.some(Boolean)) {
+          repaired = true;
+          continue;
+        }
+        const tenRepeat = item.tenRepeat === 1 ? 1 : 0;
+        if (named.changed || identified.changed || cleaned.changed) repaired = true;
+        if (shape === "ten" && item.tenRepeat !== 0 && item.tenRepeat !== 1) repaired = true;
+        if (shape !== "ten" && item.tenRepeat) repaired = true;
+        if (item.items) repaired = true;
+        const preset = { id: identified.id, name: named.name, shape, slots: cleaned.slots };
+        if (shape === "ten") preset.tenRepeat = tenRepeat;
+        menu.push(preset);
+      }
+
+      for (const item of timerSource) {
+        if (timer.length >= LIBRARY_LIMIT) {
+          repaired = true;
+          break;
+        }
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          repaired = true;
+          continue;
+        }
+        const named = cleanPresetName(item.name, timerNames);
+        if (!named.name) {
+          repaired = true;
+          continue;
+        }
+        const identified = cleanPresetId(item.id, ids);
+        const cleaned = cleanIdList(item.exercises, known, 200);
+        if (!cleaned.items.length) {
+          repaired = true;
+          continue;
+        }
+        const work = readStoredNumber(item.work, 1, 600, 20);
+        const rest = readStoredNumber(item.rest, 0, 600, 10);
+        const rounds = readStoredNumber(item.rounds, 1, 99, 8);
+        if (named.changed || identified.changed || cleaned.changed) repaired = true;
+        if (work !== item.work || rest !== item.rest || rounds !== item.rounds) repaired = true;
+        timer.push({
+          id: identified.id,
+          name: named.name,
+          exercises: cleaned.items,
+          work,
+          rest,
+          rounds
+        });
+      }
+
+      return { menu, timer, repaired };
+    }
+
     function readStoredNumber(value, min, max, fallback) {
       const number = Number(value);
       if (!Number.isFinite(number)) return fallback;
@@ -1257,6 +1517,18 @@
       }
     }
 
+    function saveLibrary() {
+      try {
+        localStorage.setItem(LIBRARY_KEY, JSON.stringify({
+          menu: state.library.menu,
+          timer: state.library.timer
+        }));
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
     const loadedParts = loadCustomParts();
     const loadedExercises = loadExercises(loadedParts.ok
       ? new Set(DEFAULT_PARTS.concat(loadedParts.parts.map((item) => item.name)))
@@ -1264,6 +1536,7 @@
     const loadedCustomParts = loadedParts.ok ? loadedParts.parts : recoverParts(loadedExercises);
     const loadedMenu = loadMenu(loadedExercises);
     const loadedTimer = loadTimer(loadedExercises);
+    const loadedLibrary = loadLibrary(loadedExercises);
 
     const state = {
       exercises: loadedExercises,
@@ -1274,6 +1547,14 @@
       checks: loadedMenu.checks,
       tenRepeat: loadedMenu.tenRepeat === 1 ? 1 : 0,
       session: loadedTimer.session,
+      library: { menu: loadedLibrary.menu, timer: loadedLibrary.timer },
+      libraryUi: {
+        menu: { phase: null, draft: "", error: "", deleteId: null },
+        timer: { phase: null, draft: "", error: "", deleteId: null }
+      },
+      libraryStatus: { menu: "", timer: "" },
+      libraryHold: null,
+      focusLibrary: null,
       mode: "menu",
       dbFilter: null,
       pickerMode: "menu",
@@ -1292,6 +1573,7 @@
       timer: { phase: "idle", round: 1, remainingMs: loadedTimer.work * 1000, running: false }
     };
     let ignorePartEnter = false;
+    let ignoreLibraryEnter = false;
 
     let endsAt = 0;
     let timerHandle = null;
@@ -1346,6 +1628,46 @@
 
     function isFreeMenu() {
       return state.menuShape === "free";
+    }
+
+    function menuHasSelection() {
+      return isFreeMenu() ? state.free.length > 0 : currentMenu().some((id) => id);
+    }
+
+    function sameList(left, right) {
+      return left.length === right.length && left.every((value, index) => value === right[index]);
+    }
+
+    function snapshotMenu() {
+      if (isFreeMenu()) return { shape: "free", items: state.free.map((item) => item.exerciseId) };
+      const body = { shape: state.menuShape, slots: currentMenu().slice() };
+      if (state.menuShape === "ten") body.tenRepeat = state.tenRepeat === 1 ? 1 : 0;
+      return body;
+    }
+
+    function snapshotTimer() {
+      return {
+        exercises: state.session.map((item) => item.exerciseId),
+        work: readNumber(workInput, 1, 600, 20),
+        rest: readNumber(restInput, 0, 600, 10),
+        rounds: readNumber(roundInput, 1, 99, 8)
+      };
+    }
+
+    function menuPresetMatches(preset) {
+      const current = snapshotMenu();
+      if (preset.shape !== current.shape) return false;
+      if (preset.shape === "free") return sameList(preset.items, current.items);
+      if (preset.shape === "ten" && (preset.tenRepeat === 1 ? 1 : 0) !== (current.tenRepeat === 1 ? 1 : 0)) return false;
+      return sameList(preset.slots, current.slots);
+    }
+
+    function timerPresetMatches(preset) {
+      const current = snapshotTimer();
+      return sameList(preset.exercises, current.exercises)
+        && preset.work === current.work
+        && preset.rest === current.rest
+        && preset.rounds === current.rounds;
     }
 
     function menuLead() {
@@ -1519,6 +1841,41 @@
     function renderWorkoutActions(mode) {
       const target = document.getElementById(mode === "menu" ? "menu-actions" : "timer-actions");
       if (!target) return;
+      const fieldId = `${mode}-library-name`;
+      const previous = document.getElementById(fieldId);
+      const preserve = previous && document.activeElement === previous
+        ? { start: previous.selectionStart, end: previous.selectionEnd }
+        : null;
+      if (preserve) state.libraryUi[mode].draft = previous.value;
+
+      const ui = state.libraryUi[mode];
+      if (ui.phase === "save" || ui.phase === "overwrite") {
+        const error = ui.error ? `<p class="form-error">${esc(ui.error)}</p>` : "";
+        const actions = ui.phase === "overwrite"
+          ? `<p class="part-note">同じ名前があります</p>
+            <button type="button" class="primary" data-library-overwrite>上書きする</button>
+            <button type="button" class="text-btn" data-library-cancel>やめる</button>`
+          : `<button type="button" class="primary" data-library-commit>保存する</button>
+            <button type="button" class="text-btn" data-library-cancel>やめる</button>`;
+        target.innerHTML = `<div class="library-save">
+          <input type="text" id="${fieldId}" maxlength="24" placeholder="胸の日、など" aria-label="メニュー名" autocomplete="off" value="${esc(ui.draft)}">
+          ${actions}
+          ${error}
+        </div>`;
+        const next = document.getElementById(fieldId);
+        if (state.focusLibrary === mode && next) {
+          state.focusLibrary = null;
+          next.focus();
+          const end = next.value.length;
+          next.setSelectionRange(end, end);
+        } else if (preserve && next) {
+          next.focus();
+          const end = next.value.length;
+          next.setSelectionRange(Math.min(preserve.start ?? end, end), Math.min(preserve.end ?? end, end));
+        }
+        return;
+      }
+
       const resetKey = `${mode}-reset`;
       const clearKey = `${mode}-clear`;
       if (state.actionArmed === resetKey) {
@@ -1537,11 +1894,10 @@
       const canReset = mode === "menu"
         ? (isFreeMenu() ? state.free.some((item) => item.done) : hasShapeChecks(state.menuShape))
         : state.session.some((item) => item.done);
-      const canClear = mode === "menu"
-        ? (isFreeMenu() ? state.free.length > 0 : currentMenu().some((id) => id))
-        : state.session.length > 0;
+      const canClear = mode === "menu" ? menuHasSelection() : state.session.length > 0;
       target.innerHTML = `<button type="button" class="text-btn" data-arm-action="reset" ${canReset ? "" : "disabled"}>進行をリセット</button>
-        <button type="button" class="text-btn" data-arm-action="clear" ${canClear ? "" : "disabled"}>メニューをクリア</button>`;
+        <button type="button" class="text-btn" data-arm-action="clear" ${canClear ? "" : "disabled"}>メニューをクリア</button>
+        <button type="button" class="text-btn" data-arm-action="save" ${canClear ? "" : "disabled"}>メニューを保存</button>`;
     }
 
     function resetMenuProgress() {
@@ -1584,10 +1940,335 @@
       renderSession();
     }
 
+    function closeLibraryEditors(mode) {
+      const ui = state.libraryUi[mode];
+      ui.phase = null;
+      ui.draft = "";
+      ui.error = "";
+      ui.deleteId = null;
+    }
+
+    function libraryDraftName(mode) {
+      const input = document.getElementById(`${mode}-library-name`);
+      if (input) state.libraryUi[mode].draft = input.value;
+      return normalize(state.libraryUi[mode].draft).slice(0, 24);
+    }
+
+    function refreshLibrary(mode) {
+      renderLibrary(mode);
+      renderWorkoutActions(mode);
+    }
+
+    function flashLibrary(mode, message) {
+      state.libraryStatus[mode] = message;
+      state.libraryHold = mode;
+    }
+
+    function presetIsCurrent(mode, preset) {
+      return mode === "menu" ? menuPresetMatches(preset) : timerPresetMatches(preset);
+    }
+
+    function renderLibrary(mode) {
+      const root = document.getElementById(mode === "menu" ? "menu-library" : "timer-library");
+      const statusEl = document.getElementById(`${mode}-library-status`);
+      const slot = mode === "timer" ? document.getElementById("timer-library-slot") : null;
+      if (!root || !statusEl) return;
+      const ui = state.libraryUi[mode];
+      const presets = state.library[mode];
+      if ((ui.phase === "delete" || ui.phase === "confirm-delete") && !presets.length) {
+        ui.phase = null;
+        ui.deleteId = null;
+      } else if (ui.phase === "confirm-delete" && !presets.some((item) => item.id === ui.deleteId)) {
+        ui.phase = "delete";
+        ui.deleteId = null;
+      }
+      if (state.libraryHold === mode) state.libraryHold = null;
+      else state.libraryStatus[mode] = "";
+      statusEl.textContent = state.libraryStatus[mode];
+      root.hidden = presets.length === 0;
+      if (slot) slot.hidden = root.hidden && statusEl.textContent === "";
+      if (!presets.length) {
+        root.innerHTML = "";
+        return;
+      }
+      const picking = ui.phase === "delete" || ui.phase === "confirm-delete";
+      let head = "";
+      if (ui.phase === "confirm-delete") {
+        const preset = presets.find((item) => item.id === ui.deleteId);
+        head = `<p class="confirm-note">『${esc(preset.name)}』を削除します</p>
+          <button type="button" class="text-btn danger" data-library-confirm-delete>削除する</button>
+          <button type="button" class="text-btn" data-library-cancel>やめる</button>`;
+      } else if (ui.phase === "delete") {
+        head = `<p class="library-label">削除するメニューを選んでください</p>
+          <button type="button" class="text-btn" data-library-cancel>やめる</button>`;
+      } else {
+        head = `<p class="library-label">保存したメニュー</p>
+          <button type="button" class="text-btn" data-library-arm-delete>削除</button>`;
+      }
+      const chips = presets.map((preset) => {
+        const on = !picking && presetIsCurrent(mode, preset);
+        return `<button type="button" class="chip${on ? " is-on" : ""}" data-library-open="${esc(preset.id)}" aria-pressed="${on}">${esc(preset.name)}</button>`;
+      }).join("");
+      root.innerHTML = `<div class="library-top">${head}</div><div class="chips">${chips}</div>`;
+    }
+
+    function loadMenuPreset(preset) {
+      if (menuPresetMatches(preset)) return;
+      closeLibraryEditors("menu");
+      state.actionArmed = null;
+      state.menuShape = preset.shape;
+      if (preset.shape === "free") {
+        state.free = preset.items.map((exerciseId) => ({
+          key: newSessionKey(),
+          exerciseId,
+          done: false
+        }));
+      } else {
+        state.menus[preset.shape] = preset.slots.slice();
+        deleteShapeChecks(preset.shape);
+        if (preset.shape === "ten") state.tenRepeat = preset.tenRepeat === 1 ? 1 : 0;
+      }
+      flashLibrary("menu", `${preset.name}を呼び出しました`);
+      saveMenu();
+      if (state.mode === "menu") lead.textContent = menuLead();
+      renderMenu();
+    }
+
+    function loadTimerPreset(preset) {
+      if (timerPresetMatches(preset)) return;
+      closeLibraryEditors("timer");
+      state.actionArmed = null;
+      stopTimer();
+      workInput.value = String(preset.work);
+      restInput.value = String(preset.rest);
+      roundInput.value = String(preset.rounds);
+      state.session = preset.exercises.map((exerciseId) => ({
+        key: newSessionKey(),
+        exerciseId,
+        done: false
+      }));
+      state.timer.phase = "idle";
+      state.timer.round = 1;
+      state.timer.remainingMs = preset.work * 1000;
+      flashLibrary("timer", `${preset.name}を呼び出しました`);
+      saveTimer();
+      renderSession();
+      renderTimer();
+    }
+
+    function commitLibrary(mode, overwrite) {
+      const ui = state.libraryUi[mode];
+      const name = libraryDraftName(mode);
+      const showError = (message) => {
+        ui.error = message;
+        ui.phase = "save";
+        state.focusLibrary = mode;
+        refreshLibrary(mode);
+      };
+      if (!name) {
+        showError("名前を入力してください");
+        return;
+      }
+      const hasItems = mode === "menu" ? menuHasSelection() : state.session.length > 0;
+      if (!hasItems) {
+        showError("種目を選んでから保存できます");
+        return;
+      }
+      const list = state.library[mode];
+      const existingIndex = list.findIndex((item) => item.name === name);
+      if (existingIndex >= 0 && !overwrite) {
+        ui.phase = "overwrite";
+        ui.error = "";
+        refreshLibrary(mode);
+        return;
+      }
+      if (existingIndex < 0 && list.length >= LIBRARY_LIMIT) {
+        showError("30件まで保存できます");
+        return;
+      }
+      const body = mode === "menu" ? snapshotMenu() : snapshotTimer();
+      const previous = existingIndex >= 0 ? list[existingIndex] : null;
+      const preset = { id: previous ? previous.id : newLibraryId(), name, ...body };
+      if (existingIndex >= 0) list[existingIndex] = preset;
+      else list.push(preset);
+      if (!saveLibrary()) {
+        if (existingIndex >= 0) list[existingIndex] = previous;
+        else list.pop();
+        showError("保存できませんでした");
+        return;
+      }
+      closeLibraryEditors(mode);
+      flashLibrary(mode, `${name}を保存しました`);
+      if (mode === "menu") renderMenu();
+      else {
+        renderSession();
+        renderTimer();
+      }
+    }
+
+    function deleteLibraryPreset(mode) {
+      const ui = state.libraryUi[mode];
+      const list = state.library[mode];
+      const index = list.findIndex((item) => item.id === ui.deleteId);
+      if (index < 0) {
+        closeLibraryEditors(mode);
+        refreshLibrary(mode);
+        return;
+      }
+      const [removed] = list.splice(index, 1);
+      closeLibraryEditors(mode);
+      if (!saveLibrary()) {
+        list.splice(index, 0, removed);
+        ui.phase = "confirm-delete";
+        ui.deleteId = removed.id;
+        const status = document.getElementById(mode === "menu" ? "menu-status" : "timer-status");
+        if (status) {
+          status.textContent = "保存できませんでした";
+          status.hidden = false;
+        }
+        refreshLibrary(mode);
+        return;
+      }
+      flashLibrary(mode, `${removed.name}を削除しました`);
+      if (mode === "menu") renderMenu();
+      else renderSession();
+    }
+
+    function onLibraryClick(mode, event) {
+      const ui = state.libraryUi[mode];
+      if (event.target.closest("[data-library-cancel]")) {
+        closeLibraryEditors(mode);
+        state.actionArmed = null;
+        refreshLibrary(mode);
+        return;
+      }
+      if (event.target.closest("[data-library-commit]")) {
+        commitLibrary(mode, false);
+        return;
+      }
+      if (event.target.closest("[data-library-overwrite]")) {
+        commitLibrary(mode, true);
+        return;
+      }
+      if (event.target.closest("[data-library-arm-delete]")) {
+        closeLibraryEditors(mode);
+        ui.phase = "delete";
+        state.actionArmed = null;
+        refreshLibrary(mode);
+        return;
+      }
+      if (event.target.closest("[data-library-confirm-delete]")) {
+        deleteLibraryPreset(mode);
+        return;
+      }
+      const chip = event.target.closest("[data-library-open]");
+      if (!chip) return;
+      const preset = state.library[mode].find((item) => item.id === chip.dataset.libraryOpen);
+      if (!preset) return;
+      if (ui.phase === "delete" || ui.phase === "confirm-delete") {
+        ui.phase = "confirm-delete";
+        ui.deleteId = preset.id;
+        refreshLibrary(mode);
+        return;
+      }
+      if (mode === "menu") loadMenuPreset(preset);
+      else loadTimerPreset(preset);
+    }
+
+    function onLibraryInput(mode, event) {
+      const input = event.target;
+      if (!input || input.id !== `${mode}-library-name`) return;
+      const ui = state.libraryUi[mode];
+      const before = ui.phase;
+      const hadError = ui.error;
+      ui.draft = input.value;
+      if (event.isComposing) return;
+      if (ui.error) ui.error = "";
+      if (ui.phase === "overwrite") {
+        const name = normalize(input.value).slice(0, 24);
+        if (!state.library[mode].some((item) => item.name === name)) ui.phase = "save";
+      }
+      if (ui.phase === before && ui.error === hadError) return;
+      const caret = input.selectionStart;
+      renderWorkoutActions(mode);
+      const next = document.getElementById(`${mode}-library-name`);
+      if (!next) return;
+      next.focus();
+      next.setSelectionRange(caret, caret);
+    }
+
+    function onLibraryCompositionEnd(mode, event) {
+      if (!event.target || event.target.id !== `${mode}-library-name`) return;
+      ignoreLibraryEnter = true;
+      setTimeout(() => { ignoreLibraryEnter = false; }, 0);
+      onLibraryInput(mode, event);
+    }
+
+    function onLibraryKeydown(mode, event) {
+      if (event.key !== "Enter" || event.target.id !== `${mode}-library-name`) return;
+      if (event.isComposing || event.keyCode === 229 || ignoreLibraryEnter) return;
+      event.preventDefault();
+      commitLibrary(mode, state.libraryUi[mode].phase === "overwrite");
+    }
+
+    function stripExerciseFromLibrary(id) {
+      let changed = false;
+      const menu = [];
+      for (const preset of state.library.menu) {
+        if (preset.shape === "free") {
+          const items = preset.items.filter((item) => item !== id);
+          if (items.length === preset.items.length) {
+            menu.push(preset);
+            continue;
+          }
+          changed = true;
+          if (items.length) menu.push({ ...preset, items });
+          continue;
+        }
+        let touched = false;
+        const slots = preset.slots.map((slot) => {
+          if (slot !== id) return slot;
+          touched = true;
+          return null;
+        });
+        if (!touched) {
+          menu.push(preset);
+          continue;
+        }
+        changed = true;
+        if (slots.some(Boolean)) menu.push({ ...preset, slots });
+      }
+      const timer = [];
+      for (const preset of state.library.timer) {
+        const exercises = preset.exercises.filter((item) => item !== id);
+        if (exercises.length === preset.exercises.length) {
+          timer.push(preset);
+          continue;
+        }
+        changed = true;
+        if (exercises.length) timer.push({ ...preset, exercises });
+      }
+      if (!changed) return false;
+      state.library.menu = menu;
+      state.library.timer = timer;
+      return true;
+    }
+
     function onWorkoutAction(mode, event) {
       const button = event.target.closest("[data-arm-action]");
       if (!button || button.disabled) return;
       const action = button.dataset.armAction;
+      if (action === "save") {
+        const ui = state.libraryUi[mode];
+        closeLibraryEditors(mode);
+        ui.phase = "save";
+        state.actionArmed = null;
+        state.focusLibrary = mode;
+        state.libraryStatus[mode] = "";
+        state.libraryHold = null;
+        refreshLibrary(mode);
+        return;
+      }
       if (action === "reset") {
         state.actionArmed = `${mode}-reset`;
         renderWorkoutActions(mode);
@@ -1706,6 +2387,7 @@
 
     function renderMenu() {
       renderProgress();
+      renderLibrary("menu");
       renderWorkoutActions("menu");
       document.getElementById("add-free").hidden = !isFreeMenu();
       document.querySelectorAll("#shape-switch button").forEach((button) => {
@@ -1744,6 +2426,7 @@
     }
 
     function renderSession() {
+      renderLibrary("timer");
       renderWorkoutActions("timer");
       const done = state.session.filter((item) => item.done).length;
       document.getElementById("session-count").textContent = state.session.length
@@ -1834,10 +2517,14 @@
     }
 
     function showMode(mode) {
-      if (state.actionArmed) {
+      const changed = state.mode !== mode;
+      if (changed) {
         state.actionArmed = null;
-        renderWorkoutActions("menu");
-        renderWorkoutActions("timer");
+        closeLibraryEditors("menu");
+        closeLibraryEditors("timer");
+        state.libraryStatus.menu = "";
+        state.libraryStatus.timer = "";
+        state.libraryHold = null;
       }
       state.mode = mode;
       lead.textContent = mode === "menu" ? menuLead() : LEADS[mode];
@@ -1847,6 +2534,10 @@
         const on = name === mode;
         tab.setAttribute("aria-selected", String(on));
         panel.hidden = !on;
+      }
+      if (changed) {
+        renderMenu();
+        renderSession();
       }
       window.scrollTo(0, 0);
     }
@@ -1862,6 +2553,7 @@
       }
       state.session = state.session.filter((item) => item.exerciseId !== id);
       state.free = state.free.filter((item) => item.exerciseId !== id);
+      if (stripExerciseFromLibrary(id)) saveLibrary();
     }
 
     function resetForm() {
@@ -1978,8 +2670,24 @@
       showMode(tab.id.replace("tab-", ""));
     });
 
-    document.getElementById("menu-actions").addEventListener("click", (event) => onWorkoutAction("menu", event));
-    document.getElementById("timer-actions").addEventListener("click", (event) => onWorkoutAction("timer", event));
+    function bindLibrary(mode) {
+      const actions = document.getElementById(mode === "menu" ? "menu-actions" : "timer-actions");
+      const library = document.getElementById(mode === "menu" ? "menu-library" : "timer-library");
+      actions.addEventListener("click", (event) => {
+        if (event.target.closest("[data-library-commit], [data-library-overwrite], [data-library-cancel]")) {
+          onLibraryClick(mode, event);
+          return;
+        }
+        onWorkoutAction(mode, event);
+      });
+      actions.addEventListener("input", (event) => onLibraryInput(mode, event));
+      actions.addEventListener("compositionend", (event) => onLibraryCompositionEnd(mode, event));
+      actions.addEventListener("keydown", (event) => onLibraryKeydown(mode, event));
+      library.addEventListener("click", (event) => onLibraryClick(mode, event));
+    }
+
+    bindLibrary("menu");
+    bindLibrary("timer");
 
     document.getElementById("shape-switch").addEventListener("click", (event) => {
       const button = event.target.closest("[data-shape]");
@@ -2338,6 +3046,7 @@
       if (state.timer.phase === "idle") state.timer.remainingMs = workMs();
       saveTimer();
       renderTimer();
+      renderLibrary("timer");
     }
 
     [workInput, restInput, roundInput].forEach((input) => {
@@ -2377,6 +3086,7 @@
     if (exercisesRepaired && exercisesReadable) saveExercises();
     if (loadedMenu.repaired && exercisesReadable) saveMenu();
     if (loadedTimer.repaired && exercisesReadable) saveTimer();
+    if (loadedLibrary.repaired && exercisesReadable) saveLibrary();
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js").catch(() => {});
