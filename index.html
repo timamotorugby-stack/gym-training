@@ -651,6 +651,50 @@
       color: var(--muted);
     }
 
+    .set-heading .set-note { font-weight: 500; }
+    .set-heading .set-note::before { content: " · "; }
+
+    .repeat-switch {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 12px;
+      margin: -4px 0 16px;
+    }
+
+    .repeat-switch[hidden] { display: none; }
+
+    .repeat-switch p {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .repeat-switch div {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: min(100%, 280px);
+    }
+
+    .repeat-switch button {
+      min-height: 44px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+
+    .repeat-switch button[aria-pressed="true"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #f4f1ea;
+    }
+
     .timer-settings {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -767,9 +811,16 @@
       <div class="narrow">
         <div class="shape" id="shape-switch" role="group" aria-label="メニューの形">
           <button type="button" data-shape="same" aria-pressed="true"><strong>同じ5種目</strong><span>それぞれ3セット</span></button>
-          <button type="button" data-shape="ten" aria-pressed="false"><strong>10種目</strong><span>違う5種目×2</span></button>
+          <button type="button" data-shape="ten" aria-pressed="false"><strong>10種目</strong><span>片方を2回</span></button>
           <button type="button" data-shape="fifteen" aria-pressed="false"><strong>15種目</strong><span>違う5種目×3</span></button>
           <button type="button" data-shape="free" aria-pressed="false"><strong>メニューフリー</strong><span>順番に進める</span></button>
+        </div>
+        <div class="repeat-switch" id="ten-repeat" hidden>
+          <p id="ten-repeat-label">2回行う5種目</p>
+          <div role="group" aria-labelledby="ten-repeat-label">
+            <button type="button" data-repeat="0" aria-pressed="true">前の5種目</button>
+            <button type="button" data-repeat="1" aria-pressed="false">後の5種目</button>
+          </div>
         </div>
         <p class="form-error" id="menu-status" role="status" hidden></p>
         <div class="progress">
@@ -874,7 +925,7 @@
     };
     const SHAPES = {
       same: { count: 5, setsEach: 3, groups: 1, lead: "同じ5種目を、それぞれ3セット行います。" },
-      ten: { count: 10, setsEach: 1, groups: 2, lead: "違う5種目を、2セット行います。" },
+      ten: { count: 10, setsEach: 1, groups: 2, performed: 15, lead: "5種目を2つ作り、どちらかを2回行って、15種目にします。" },
       fifteen: { count: 15, setsEach: 1, groups: 3, lead: "違う5種目を、3セット行います。" }
     };
     const FREE_LEAD = "時間を区切らず、種目を順番に行います。";
@@ -1027,11 +1078,17 @@
         if (index < SHAPES.same.count && set < SHAPES.same.setsEach) return { shape: "same", index };
         return null;
       }
-      const grouped = /^(ten|fifteen)-(\d+)$/.exec(key);
-      if (!grouped) return null;
-      const shape = grouped[1];
-      const index = Number(grouped[2]);
-      if (index < SHAPES[shape].count) return { shape, index };
+      const ten = /^ten-(\d+)(?:-(\d+))?$/.exec(key);
+      if (ten) {
+        const index = Number(ten[1]);
+        const pass = ten[2] === undefined ? 0 : Number(ten[2]);
+        if (index < SHAPES.ten.count && (pass === 0 || pass === 1)) return { shape: "ten", index, pass };
+        return null;
+      }
+      const fifteen = /^fifteen-(\d+)$/.exec(key);
+      if (!fifteen) return null;
+      const index = Number(fifteen[1]);
+      if (index < SHAPES.fifteen.count) return { shape: "fifteen", index };
       return null;
     }
 
@@ -1045,6 +1102,7 @@
         },
         free: [],
         checks: {},
+        tenRepeat: 0,
         repaired: false
       };
       let stored;
@@ -1062,6 +1120,7 @@
       const menuShape = stored.menuShape === "free" || (stored.menuShape && SHAPES[stored.menuShape])
         ? stored.menuShape
         : "same";
+      const tenRepeat = stored.tenRepeat === 1 ? 1 : 0;
       const known = new Set(exercises.map((item) => item.id));
       const menus = {};
       for (const [shape, spec] of Object.entries(SHAPES)) {
@@ -1087,17 +1146,24 @@
         if (on !== true) continue;
         const slot = checkSlot(key);
         if (!slot || !menus[slot.shape][slot.index]) continue;
+        if (slot.shape === "ten") {
+          const group = slot.index < 5 ? 0 : 1;
+          if (slot.pass === 1 && group !== tenRepeat) continue;
+          checks[checkKey("ten", slot.index, slot.pass)] = true;
+          continue;
+        }
         checks[key] = true;
       }
 
-      const normalized = JSON.stringify({ menuShape, menus, free, checks });
+      const normalized = JSON.stringify({ menuShape, menus, free, checks, tenRepeat });
       const original = JSON.stringify({
         menuShape: stored.menuShape,
         menus: stored.menus,
         free: stored.free,
-        checks: stored.checks
+        checks: stored.checks,
+        tenRepeat: stored.tenRepeat
       });
-      return { menuShape, menus, free, checks, repaired: normalized !== original };
+      return { menuShape, menus, free, checks, tenRepeat, repaired: normalized !== original };
     }
 
     function loadTimer(exercises) {
@@ -1176,7 +1242,8 @@
             exerciseId: item.exerciseId,
             done: item.done === true
           })),
-          checks
+          checks,
+          tenRepeat: state.tenRepeat === 1 ? 1 : 0
         }));
         if (menuStatus) {
           menuStatus.textContent = "";
@@ -1205,6 +1272,7 @@
       menus: loadedMenu.menus,
       free: loadedMenu.free,
       checks: loadedMenu.checks,
+      tenRepeat: loadedMenu.tenRepeat === 1 ? 1 : 0,
       session: loadedTimer.session,
       mode: "menu",
       dbFilter: null,
@@ -1299,6 +1367,12 @@
     }
 
     function clearSlotChecks(shape, index) {
+      if (shape === "ten") {
+        delete state.checks[checkKey(shape, index, 0)];
+        delete state.checks[checkKey(shape, index, 1)];
+        delete state.checks[`${shape}-${index}`];
+        return;
+      }
       const sets = SHAPES[shape].setsEach;
       if (sets === 1) delete state.checks[checkKey(shape, index)];
       else for (let set = 0; set < sets; set += 1) delete state.checks[checkKey(shape, index, set)];
@@ -1489,6 +1563,7 @@
         const list = state.menus[shape];
         for (let index = 0; index < list.length; index += 1) list[index] = null;
         deleteShapeChecks(shape);
+        if (shape === "ten") state.tenRepeat = 0;
       }
       state.actionArmed = null;
       saveMenu();
@@ -1553,25 +1628,31 @@
       const shape = shapeOf();
       const prefix = `${state.menuShape}-`;
       const done = Object.entries(state.checks).filter(([key, on]) => on && key.startsWith(prefix)).length;
-      const total = shape.count * shape.setsEach;
+      const total = shape.performed || shape.count * shape.setsEach;
       const unit = shape.setsEach === 1 ? "種目" : "セット";
       progressLabel.textContent = unit;
       document.getElementById("progress-count").textContent = done === total ? `${total}${unit}完了` : `${done} / ${total}`;
       document.getElementById("progress-fill").style.width = `${total ? (done / total) * 100 : 0}%`;
     }
 
-    function menuCard(id, index) {
+    function menuCard(id, index, pass) {
       const exercise = exerciseById(id);
       const order = String(index + 1).padStart(2, "0");
       if (!exercise) {
         return `<button type="button" class="empty-slot" data-pick="${index}"><strong>${index + 1}種目目を選ぶ</strong><span>データベースから選びます</span></button>`;
       }
-      const setsEach = shapeOf().setsEach;
-      const sets = Array.from({ length: setsEach }, (_, set) => {
-        const key = setsEach === 1 ? checkKey(state.menuShape, index) : checkKey(state.menuShape, index, set);
-        const on = Boolean(state.checks[key]);
-        const label = setsEach === 1 ? "終了" : `セット ${set + 1}`;
-        return `<button type="button" class="set" data-check="${key}" aria-pressed="${on}"><span class="box"></span>${label}</button>`;
+      const sets = state.menuShape === "ten"
+        ? [{ key: checkKey("ten", index, pass === 1 ? 1 : 0), label: "終了" }]
+        : Array.from({ length: shapeOf().setsEach }, (_, set) => {
+          const setsEach = shapeOf().setsEach;
+          return {
+            key: setsEach === 1 ? checkKey(state.menuShape, index) : checkKey(state.menuShape, index, set),
+            label: setsEach === 1 ? "終了" : `セット ${set + 1}`
+          };
+        });
+      const buttons = sets.map((set) => {
+        const on = Boolean(state.checks[set.key]);
+        return `<button type="button" class="set" data-check="${set.key}" aria-pressed="${on}"><span class="box"></span>${set.label}</button>`;
       }).join("");
       const note = exercise.note ? `<p class="note">${esc(exercise.note)}</p>` : "";
       return `<article class="card">
@@ -1584,7 +1665,7 @@
           </div>
           <button type="button" class="text-btn" data-pick="${index}">変更</button>
         </div>
-        <div class="sets">${sets}</div>
+        <div class="sets">${buttons}</div>
       </article>`;
     }
 
@@ -1606,6 +1687,23 @@
       return rows || `<p class="empty-copy">種目を末尾に追加すると、ここに並びます。</p>`;
     }
 
+    function tenRounds() {
+      const front = [0, 1, 2, 3, 4];
+      const back = [5, 6, 7, 8, 9];
+      if (state.tenRepeat === 1) {
+        return [
+          { slots: front, pass: 0, note: "" },
+          { slots: back, pass: 0, note: "" },
+          { slots: back, pass: 1, note: "2セット目と同じ" }
+        ];
+      }
+      return [
+        { slots: front, pass: 0, note: "" },
+        { slots: front, pass: 1, note: "1セット目と同じ" },
+        { slots: back, pass: 0, note: "" }
+      ];
+    }
+
     function renderMenu() {
       renderProgress();
       renderWorkoutActions("menu");
@@ -1613,11 +1711,27 @@
       document.querySelectorAll("#shape-switch button").forEach((button) => {
         button.setAttribute("aria-pressed", String(button.dataset.shape === state.menuShape));
       });
+      const repeatSwitch = document.getElementById("ten-repeat");
+      const showRepeat = state.menuShape === "ten";
+      repeatSwitch.hidden = !showRepeat;
+      if (showRepeat) {
+        repeatSwitch.querySelectorAll("[data-repeat]").forEach((button) => {
+          button.setAttribute("aria-pressed", String(Number(button.dataset.repeat) === state.tenRepeat));
+        });
+      }
       if (isFreeMenu()) {
         menuList.innerHTML = sessionListHtml(state.free);
         return;
       }
       const list = currentMenu();
+      if (state.menuShape === "ten") {
+        menuList.innerHTML = tenRounds().map((round, group) => {
+          const cards = round.slots.map((index) => menuCard(list[index], index, round.pass)).join("");
+          const note = round.note ? `<span class="set-note">${esc(round.note)}</span>` : "";
+          return `<h3 class="set-heading">${group + 1}セット目${note}</h3>${cards}`;
+        }).join("");
+        return;
+      }
       const groups = shapeOf().groups;
       if (groups === 1) {
         menuList.innerHTML = list.map((id, index) => menuCard(id, index)).join("");
@@ -1873,6 +1987,21 @@
       state.menuShape = button.dataset.shape;
       state.actionArmed = null;
       if (state.mode === "menu") lead.textContent = menuLead();
+      saveMenu();
+      renderMenu();
+    });
+
+    document.getElementById("ten-repeat").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-repeat]");
+      if (!button || state.menuShape !== "ten") return;
+      const next = button.dataset.repeat === "1" ? 1 : 0;
+      if (next === state.tenRepeat) return;
+      const previous = state.tenRepeat === 1 ? 1 : 0;
+      state.tenRepeat = next;
+      for (let offset = 0; offset < 5; offset += 1) {
+        delete state.checks[checkKey("ten", previous * 5 + offset, 1)];
+      }
+      state.actionArmed = null;
       saveMenu();
       renderMenu();
     });
