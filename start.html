@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="スタート位置">
+  <meta name="theme-color" content="#f3f0e8">
+  <title>スタート位置</title>
+  <link rel="icon" href="icon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1b19;
+      --muted: #6f6a62;
+      --paper: #f3f0e8;
+      --card: #fffcf7;
+      --line: #e3ddd2;
+      --track: #e6e0d4;
+      --green: #1f6b4a;
+      --green-soft: #e5f2eb;
+      --danger: #9d3b32;
+      --danger-soft: #f8ebe8;
+      --shadow: 0 1px 2px rgba(28, 27, 25, 0.05);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    button { font: inherit; color: inherit; cursor: pointer; }
+    a { color: inherit; }
+    :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+    .screen {
+      width: min(480px, 100%);
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      padding:
+        calc(18px + env(safe-area-inset-top))
+        calc(20px + env(safe-area-inset-right))
+        calc(16px + env(safe-area-inset-bottom))
+        calc(20px + env(safe-area-inset-left));
+    }
+
+    .back {
+      margin: 0 0 8px;
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .back a {
+      color: var(--muted);
+      text-decoration: none;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .lead {
+      margin: 6px 0 18px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .person { margin-bottom: 14px; }
+
+    .person span {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .seg {
+      display: flex;
+      padding: 4px;
+      background: var(--track);
+      border-radius: 14px;
+    }
+
+    .seg button {
+      flex: 1;
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #5c574f;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .seg button[aria-pressed="true"] {
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    .watch {
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .status {
+      min-height: 22px;
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .status:not(:empty)::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 6px;
+      border-radius: 99px;
+      background: var(--green);
+      transform: translateY(-1px);
+    }
+
+    .time {
+      margin: 2px 0 0;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-size: 4.25rem;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .screen[data-running="false"] .time { color: #8a847a; }
+
+    .answer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      text-align: center;
+      padding: 8px 0 12px;
+    }
+
+    .verdict {
+      margin: 0;
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1.15;
+    }
+
+    .verdict.wait { color: var(--danger); }
+
+    .hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .lanes {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 22px;
+      text-align: center;
+    }
+
+    .lane strong {
+      display: block;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 8px;
+      border-radius: 99px;
+      background: #fff;
+      border: 1.5px solid var(--line);
+    }
+
+    .lane em {
+      display: block;
+      font-style: normal;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .lane b {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.78rem;
+    }
+
+    .lane.first strong {
+      background: var(--ink);
+      border-color: var(--ink);
+    }
+
+    .lane.best strong {
+      width: 72px;
+      height: 72px;
+      margin-top: -4px;
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .lane.best b { color: var(--green); }
+
+    .lane.open strong {
+      background: var(--green-soft);
+      border-color: #b7d7c6;
+    }
+
+    .lane.open b { color: var(--green); }
+
+    .lane.hit strong {
+      background: var(--danger-soft);
+      border-color: #efd0cb;
+    }
+
+    .lane.hit b { color: var(--danger); }
+
+    .go, .again {
+      width: 100%;
+      border-radius: 16px;
+    }
+
+    .go {
+      min-height: 64px;
+      border: 0;
+      background: var(--green);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .again {
+      min-height: 48px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main class="screen" id="screen" data-running="false">
+    <p class="back"><a href="./">トレーニング</a></p>
+    <h1>スタート位置</h1>
+    <p class="lead">一人目の開始から、二人目の位置を出します。</p>
+
+    <div class="person">
+      <span id="label-a">一人目</span>
+      <div class="seg" role="group" aria-labelledby="label-a">
+        <button type="button" data-who="a" data-program="force" aria-pressed="true">フォース</button>
+        <button type="button" data-who="a" data-program="slow" aria-pressed="false">スロー</button>
+        <button type="button" data-who="a" data-program="bulk" aria-pressed="false">バルク</button>
+      </div>
+    </div>
+    <div class="person">
+      <span id="label-b">二人目</span>
+      <div class="seg" role="group" aria-labelledby="label-b">
+        <button type="button" data-who="b" data-program="force" aria-pressed="true">フォース</button>
+        <button type="button" data-who="b" data-program="slow" aria-pressed="false">スロー</button>
+        <button type="button" data-who="b" data-program="bulk" aria-pressed="false">バルク</button>
+      </div>
+    </div>
+
+    <div class="watch">
+      <p class="status" id="status"></p>
+      <p class="time" id="time">0:00</p>
+    </div>
+
+    <div class="answer">
+      <p class="verdict" id="verdict" aria-live="polite">1つ隣</p>
+      <p class="hint" id="hint">同時に始めるときの位置です。</p>
+      <div class="lanes">
+        <div class="lane first">
+          <strong aria-hidden="true"></strong>
+          <em>一人目</em>
+          <b>スタート</b>
+        </div>
+        <div class="lane" data-offset="1">
+          <strong aria-hidden="true"></strong>
+          <em>1つ隣</em>
+          <b></b>
+        </div>
+        <div class="lane" data-offset="2">
+          <strong aria-hidden="true"></strong>
+          <em>2つ隣</em>
+          <b></b>
+        </div>
+        <div class="lane" data-offset="3">
+          <strong aria-hidden="true"></strong>
+          <em>3つ隣</em>
+          <b></b>
+        </div>
+      </div>
+    </div>
+
+    <button class="go" id="action" type="button">一人目がスタート</button>
+  </main>
+  <script>
+    const PROGRAMS = {
+      force: [290, 290, 290, 290],
+      slow: [310, 310, 310, 310],
+      bulk: [300, 330, 330, 330]
+    };
+
+    const screen = document.getElementById("screen");
+    const statusEl = document.getElementById("status");
+    const timeEl = document.getElementById("time");
+    const verdictEl = document.getElementById("verdict");
+    const hintEl = document.getElementById("hint");
+    const actionEl = document.getElementById("action");
+    const lanes = {
+      1: document.querySelector('[data-offset="1"]'),
+      2: document.querySelector('[data-offset="2"]'),
+      3: document.querySelector('[data-offset="3"]')
+    };
+
+    const state = { a: "force", b: "force", running: false, startedAt: 0 };
+    let timer = 0;
+
+    function occupancy(key) {
+      let t = 0;
+      return PROGRAMS[key].map((len) => {
+        const span = [t, t + len];
+        t += len;
+        return span;
+      });
+    }
+
+    function hits(offset, g) {
+      const a = occupancy(state.a);
+      const b = occupancy(state.b);
+      for (let i = 0; i < 4; i += 1) {
+        for (let j = 0; j < 4; j += 1) {
+          if (i !== (offset + j) % 4) continue;
+          const start = b[j][0] + g;
+          const end = b[j][1] + g;
+          if (a[i][0] < end && start < a[i][1]) return true;
+        }
+      }
+      return false;
+    }
+
+    function assess(g) {
+      const open = [1, 2, 3].filter((offset) => !hits(offset, g));
+      let next = null;
+      if (!open.length) {
+        for (let t = Math.floor(g) + 1; t <= 26 * 60; t += 1) {
+          const later = [1, 2, 3].filter((offset) => !hits(offset, t));
+          if (later.length) {
+            next = { t, best: later[0] };
+            break;
+          }
+        }
+      }
+      return { open, best: open[0] || null, next };
+    }
+
+    function fmt(sec) {
+      const s = Math.max(0, Math.floor(sec));
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    }
+
+    function setText(el, text) {
+      if (el.textContent !== text) el.textContent = text;
+    }
+
+    function paint() {
+      const elapsed = state.running ? Math.max(0, (Date.now() - state.startedAt) / 1000) : 0;
+      const result = assess(elapsed);
+      screen.dataset.running = String(state.running);
+      setText(statusEl, state.running ? "計測中" : "");
+      setText(timeEl, fmt(elapsed));
+
+      if (result.best) {
+        setText(verdictEl, `${result.best}つ隣`);
+        verdictEl.classList.remove("wait");
+      } else {
+        setText(verdictEl, "今は待て");
+        verdictEl.classList.add("wait");
+      }
+
+      if (!state.running) {
+        setText(hintEl, "同時に始めるときの位置です。");
+      } else if (result.best) {
+        setText(hintEl, `一人目が座ったマシンから、${result.best}つ先。`);
+      } else if (result.next) {
+        setText(hintEl, `${fmt(result.next.t)}に、${result.next.best}つ隣が重ならなくなります。`);
+      } else {
+        setText(hintEl, "この組み合わせでは隣が空きません。");
+      }
+
+      [1, 2, 3].forEach((offset) => {
+        const lane = lanes[offset];
+        const kind = offset === result.best ? "best" : result.open.includes(offset) ? "open" : "hit";
+        lane.className = `lane ${kind}`;
+        const word = offset === result.best ? "始める" : result.open.includes(offset) ? "重ならない" : "重なる";
+        setText(lane.querySelector("b"), word);
+      });
+
+      actionEl.className = state.running ? "again" : "go";
+      setText(actionEl, state.running ? "計測をやり直す" : "一人目がスタート");
+    }
+
+    function startTicking() {
+      window.clearInterval(timer);
+      timer = window.setInterval(paint, 200);
+    }
+
+    function stopTicking() {
+      window.clearInterval(timer);
+      timer = 0;
+    }
+
+    document.querySelectorAll(".seg button").forEach((button) => {
+      button.addEventListener("click", () => {
+        const who = button.dataset.who;
+        state[who] = button.dataset.program;
+        document.querySelectorAll(`[data-who="${who}"]`).forEach((peer) => {
+          peer.setAttribute("aria-pressed", String(peer === button));
+        });
+        paint();
+      });
+    });
+
+    actionEl.addEventListener("click", () => {
+      if (state.running) {
+        state.running = false;
+        state.startedAt = 0;
+        stopTicking();
+      } else {
+        state.running = true;
+        state.startedAt = Date.now();
+        startTicking();
+      }
+      paint();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (state.running && document.visibilityState === "visible") paint();
+    });
+
+    paint();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+  </script>
+</body>
+</html>

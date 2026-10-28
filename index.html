@@ -81,6 +81,22 @@
       letter-spacing: 0.01em;
     }
 
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .gap-link {
+      color: var(--green);
+      font-weight: 700;
+      font-size: 0.92rem;
+      text-decoration: none;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+
     .tabs {
       display: flex;
       width: min(100%, 420px);
@@ -868,7 +884,10 @@
 <body>
   <header>
     <div class="wrap head">
-      <h1>トレーニング</h1>
+      <div class="title-row">
+        <h1>トレーニング</h1>
+        <a class="gap-link" href="start.html">スタート位置</a>
+      </div>
       <div class="tabs" role="tablist" aria-label="モード">
         <button type="button" role="tab" id="tab-menu" aria-controls="panel-menu" aria-selected="true">メニュー</button>
         <button type="button" role="tab" id="tab-db" aria-controls="panel-db" aria-selected="false">データベース</button>

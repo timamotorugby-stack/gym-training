@@ -1,7 +1,8 @@
-const CACHE = "gym-training-v2";
+const CACHE = "gym-training-v3";
 const SHELL = [
   "./",
   "./index.html",
+  "./start.html",
   "./manifest.webmanifest",
   "./icon-180.png",
   "./icon-192.png",
@@ -24,7 +25,7 @@ self.addEventListener("activate", (event) => {
 
 function isShell(pathname) {
   const base = new URL("./", self.location).pathname;
-  return ["", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"]
+  return ["", "index.html", "start.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"]
     .some((name) => pathname === `${base}${name}`);
 }
 
