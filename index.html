@@ -593,6 +593,8 @@
       margin: 14px 0 8px;
     }
 
+    .rounds[hidden] { display: none; }
+
     .rounds i {
       width: 10px;
       height: 10px;
@@ -792,7 +794,155 @@
       text-align: left;
     }
 
+    .timer-settings[hidden],
+    #timer-editor[hidden] { display: none; }
+
     .timer-settings label { margin: 0; }
+
+    .timer-settings.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .kind-switch {
+      display: flex;
+      padding: 4px;
+      background: var(--track);
+      border-radius: 14px;
+      margin: 8px 0 12px;
+    }
+
+    .kind-switch button {
+      flex: 1;
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: #5c574f;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .kind-switch button[aria-pressed="true"] {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    .editor-label,
+    .flow-caption {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .editor-label { margin: 8px 0 0; text-align: left; }
+
+    .time.is-compact { font-size: clamp(64px, 12vw, 88px); }
+
+    .save-row { display: flex; justify-content: flex-start; margin: 0 0 8px; }
+
+    .clock-save {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 0 0 12px;
+      text-align: left;
+    }
+
+    .clock-save input[type="text"] {
+      flex: 1 1 100%;
+      width: 100%;
+      min-width: 0;
+      margin-top: 0;
+    }
+
+    .clock-save .primary { min-height: 48px; }
+
+    .clock-save .form-error { flex: 1 0 100%; margin: 0; }
+
+    .clock-block { margin-top: 18px; }
+
+    .clock-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 40px;
+    }
+
+    .clock-top h2 {
+      margin: 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .clock-hint {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .clock-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 64px;
+      margin-bottom: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      text-align: left;
+    }
+
+    button.clock-row {
+      width: 100%;
+      font: inherit;
+    }
+
+    button.clock-row[aria-pressed="true"] {
+      background: var(--green-soft);
+      border-color: #cfe3d8;
+    }
+
+    .clock-row.is-current {
+      background: var(--green-soft);
+      border-color: #cfe3d8;
+    }
+
+    .clock-ord {
+      flex: 0 0 auto;
+      width: 28px;
+      font-family: Outfit, "Hiragino Sans", sans-serif;
+      font-weight: 600;
+      color: #9a948a;
+    }
+
+    .clock-row .body { flex: 1; min-width: 0; }
+    .clock-row strong { display: block; font-size: 1.02rem; line-height: 1.3; }
+
+    .clock-row .meta {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .clock-row.is-current .meta { color: var(--green); }
+
+    .clock-actions { display: flex; gap: 2px; flex: 0 0 auto; }
+
+    .clock-status {
+      margin: 8px 0 0;
+      font-weight: 700;
+      color: var(--green);
+    }
+
+    .clock-status:empty { display: none; }
 
     input[type="number"] {
       display: block;
@@ -965,6 +1115,8 @@
           <p class="library-status" id="timer-library-status" role="status"></p>
         </div>
         <div>
+          <div id="timer-clocks"></div>
+          <p class="clock-status" id="clock-status" role="status"></p>
           <div class="progress">
             <div class="progress-top">
               <span>セッション</span>
@@ -979,17 +1131,34 @@
           <p class="phase" id="phase">準備</p>
           <p class="time" id="time" aria-live="polite">20</p>
           <p class="round-label" id="round-label">セット 1 / 8</p>
+          <p class="flow-caption" id="flow-caption" hidden></p>
           <div class="rounds" id="rounds" aria-hidden="true"></div>
-          <div class="timer-settings">
-            <label>ワーク
-              <input id="work-sec" type="number" min="1" max="600" inputmode="numeric" value="20">
-            </label>
-            <label>レスト
-              <input id="rest-sec" type="number" min="0" max="600" inputmode="numeric" value="10">
-            </label>
-            <label>セット
-              <input id="round-count" type="number" min="1" max="99" inputmode="numeric" value="8">
-            </label>
+          <div id="timer-editor">
+            <p class="editor-label" id="editor-label" hidden>新しいタイマー</p>
+            <div class="kind-switch" id="kind-switch" role="group" aria-label="タイマーの種類">
+              <button type="button" data-kind="tabata" aria-pressed="true">タバタ</button>
+              <button type="button" data-kind="simple" aria-pressed="false">一定時間</button>
+            </div>
+            <div class="timer-settings" id="tabata-settings">
+              <label>ワーク
+                <input id="work-sec" type="number" min="1" max="600" inputmode="numeric" value="20">
+              </label>
+              <label>レスト
+                <input id="rest-sec" type="number" min="0" max="600" inputmode="numeric" value="10">
+              </label>
+              <label>セット
+                <input id="round-count" type="number" min="1" max="99" inputmode="numeric" value="8">
+              </label>
+            </div>
+            <div class="timer-settings two" id="simple-settings" hidden>
+              <label>分
+                <input id="simple-min" type="number" min="0" max="60" inputmode="numeric" value="1">
+              </label>
+              <label>秒
+                <input id="simple-sec" type="number" min="0" max="59" inputmode="numeric" value="0">
+              </label>
+            </div>
+            <div id="clock-save"></div>
           </div>
           <button class="primary go" type="button" id="go">スタート</button>
           <button class="ghost" type="button" id="reset">最初から</button>
@@ -1029,7 +1198,7 @@
     const FREE_LEAD = "時間を区切らず、種目を順番に行います。";
     const LEADS = {
       db: "種目を登録し、部位ごとに探します。",
-      timer: "ワークとレストを決めて、種目を末尾に足していきます。"
+      timer: "タバタか一定時間を保存し、選んだ順に計測できます。種目は末尾に足せます。"
     };
     const EXERCISE_KEY = "gym-training-exercises";
     const PARTS_KEY = "gym-training-parts";
@@ -1273,7 +1442,17 @@
     }
 
     function loadTimer(exercises) {
-      const blank = { work: 20, rest: 10, rounds: 8, session: [], repaired: false };
+      const blank = {
+        work: 20,
+        rest: 10,
+        rounds: 8,
+        kind: "tabata",
+        simpleSec: 60,
+        session: [],
+        clocks: [],
+        flow: [],
+        repaired: false
+      };
       let stored;
       try {
         const raw = localStorage.getItem(TIMER_KEY);
@@ -1289,17 +1468,88 @@
       const work = readStoredNumber(stored.work, 1, 600, 20);
       const rest = readStoredNumber(stored.rest, 0, 600, 10);
       const rounds = readStoredNumber(stored.rounds, 1, 99, 8);
+      const kind = stored.kind === "simple" ? "simple" : "tabata";
+      const simpleSec = readStoredNumber(stored.simpleSec, 1, 3600, 60);
       const known = new Set(exercises.map((item) => item.id));
       const session = normalizeSession(stored.session, exercisesReadable ? known : null);
+      const clocks = [];
+      const clockNames = new Set();
+      const clockIds = new Set();
+      const clockSource = Array.isArray(stored.clocks) ? stored.clocks : [];
+      let clocksChanged = !Array.isArray(stored.clocks);
+      for (const item of clockSource) {
+        if (clocks.length >= 30) {
+          clocksChanged = true;
+          break;
+        }
+        const cleaned = cleanStoredClock(item, clockNames, clockIds);
+        if (!cleaned) {
+          clocksChanged = true;
+          continue;
+        }
+        if (cleaned.changed) clocksChanged = true;
+        clocks.push(cleaned.clock);
+      }
+      const knownClocks = new Set(clocks.map((item) => item.id));
+      const flow = [];
+      const flowSource = Array.isArray(stored.flow) ? stored.flow : [];
+      let flowChanged = !Array.isArray(stored.flow);
+      for (const id of flowSource) {
+        if (flow.length >= 12) {
+          flowChanged = true;
+          break;
+        }
+        if (typeof id !== "string" || !knownClocks.has(id)) {
+          flowChanged = true;
+          continue;
+        }
+        flow.push(id);
+      }
 
-      const normalized = JSON.stringify({ work, rest, rounds, session });
+      const normalized = JSON.stringify({ work, rest, rounds, kind, simpleSec, session, clocks, flow });
       const original = JSON.stringify({
         work: stored.work,
         rest: stored.rest,
         rounds: stored.rounds,
-        session: stored.session
+        kind: stored.kind,
+        simpleSec: stored.simpleSec,
+        session: stored.session,
+        clocks: stored.clocks,
+        flow: stored.flow
       });
-      return { work, rest, rounds, session, repaired: normalized !== original };
+      return {
+        work,
+        rest,
+        rounds,
+        kind,
+        simpleSec,
+        session,
+        clocks,
+        flow,
+        repaired: normalized !== original || clocksChanged || flowChanged
+      };
+    }
+
+    function cleanStoredClock(item, names, ids) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+      const named = cleanPresetName(item.name, names);
+      if (!named.name) return null;
+      const identified = cleanPresetId(item.id, ids);
+      if (item.kind === "simple") {
+        const seconds = readStoredNumber(item.seconds, 1, 3600, 60);
+        return {
+          clock: { id: identified.id, name: named.name, kind: "simple", seconds },
+          changed: named.changed || identified.changed || seconds !== item.seconds
+        };
+      }
+      if (item.kind !== "tabata") return null;
+      const work = readStoredNumber(item.work, 1, 600, 20);
+      const rest = readStoredNumber(item.rest, 0, 600, 10);
+      const rounds = readStoredNumber(item.rounds, 1, 99, 8);
+      return {
+        clock: { id: identified.id, name: named.name, kind: "tabata", work, rest, rounds },
+        changed: named.changed || identified.changed || work !== item.work || rest !== item.rest || rounds !== item.rounds
+      };
     }
 
     function cleanPresetId(value, seen) {
@@ -1488,6 +1738,10 @@
           work: readNumber(workInput, 1, 600, 20),
           rest: readNumber(restInput, 0, 600, 10),
           rounds: readNumber(roundInput, 1, 99, 8),
+          kind: state.clockKind === "simple" ? "simple" : "tabata",
+          simpleSec: readSimpleSeconds(),
+          clocks: state.clocks,
+          flow: state.flow,
           session: state.session.map((item) => ({
             key: item.key,
             exerciseId: item.exerciseId,
@@ -1566,6 +1820,14 @@
       checks: loadedMenu.checks,
       tenRepeat: loadedMenu.tenRepeat === 1 ? 1 : 0,
       session: loadedTimer.session,
+      clockKind: loadedTimer.kind,
+      clocks: loadedTimer.clocks,
+      flow: loadedTimer.flow,
+      clockSave: { phase: null, draft: "", error: "" },
+      clockUi: { phase: null, deleteId: null },
+      clockStatus: "",
+      clockHold: false,
+      focusClock: false,
       library: { menu: loadedLibrary.menu, timer: loadedLibrary.timer },
       libraryUi: {
         menu: { phase: null, draft: "", error: "", deleteId: null },
@@ -1589,10 +1851,11 @@
       focusPart: false,
       focusName: false,
       actionArmed: null,
-      timer: { phase: "idle", round: 1, remainingMs: loadedTimer.work * 1000, running: false }
+      timer: { phase: "idle", round: 1, remainingMs: 0, running: false, run: null }
     };
     let ignorePartEnter = false;
     let ignoreLibraryEnter = false;
+    let ignoreClockEnter = false;
 
     let endsAt = 0;
     let timerHandle = null;
@@ -1625,6 +1888,16 @@
     const workInput = document.getElementById("work-sec");
     const restInput = document.getElementById("rest-sec");
     const roundInput = document.getElementById("round-count");
+    const simpleMinInput = document.getElementById("simple-min");
+    const simpleSecInput = document.getElementById("simple-sec");
+    const flowCaption = document.getElementById("flow-caption");
+    const timerEditor = document.getElementById("timer-editor");
+    const editorLabel = document.getElementById("editor-label");
+    const tabataSettings = document.getElementById("tabata-settings");
+    const simpleSettings = document.getElementById("simple-settings");
+    const clockSaveEl = document.getElementById("clock-save");
+    const timerClocks = document.getElementById("timer-clocks");
+    const clockStatusEl = document.getElementById("clock-status");
     const progressLabel = document.getElementById("progress-label");
 
     function esc(value) {
@@ -2058,6 +2331,7 @@
       closeLibraryEditors("timer");
       state.actionArmed = null;
       stopTimer();
+      state.clockKind = "tabata";
       workInput.value = String(preset.work);
       restInput.value = String(preset.rest);
       roundInput.value = String(preset.rounds);
@@ -2068,7 +2342,8 @@
       }));
       state.timer.phase = "idle";
       state.timer.round = 1;
-      state.timer.remainingMs = preset.work * 1000;
+      state.timer.run = null;
+      state.timer.remainingMs = openingMs(previewSpec());
       flashLibrary("timer", `${preset.name}を呼び出しました`);
       saveTimer();
       renderSession();
@@ -2445,6 +2720,7 @@
     }
 
     function renderSession() {
+      renderClocks();
       renderLibrary("timer");
       renderWorkoutActions("timer");
       const done = state.session.filter((item) => item.done).length;
@@ -2513,26 +2789,365 @@
       }, state.pickerFilter);
     }
 
+    function isCounting() {
+      const phase = state.timer.phase;
+      return phase === "work" || phase === "rest" || phase === "simple";
+    }
+
+    function readSimpleSeconds() {
+      let minutes = readNumber(simpleMinInput, 0, 60, 0);
+      let seconds = readNumber(simpleSecInput, 0, 59, 0);
+      if (minutes >= 60) {
+        minutes = 60;
+        seconds = 0;
+      }
+      return Math.min(3600, Math.max(1, minutes * 60 + seconds));
+    }
+
+    function writeSimpleFields(total) {
+      const seconds = Math.min(3600, Math.max(1, total));
+      simpleMinInput.value = String(Math.floor(seconds / 60));
+      simpleSecInput.value = String(seconds % 60);
+    }
+
+    function draftSpec() {
+      if (state.clockKind === "simple") {
+        return { kind: "simple", seconds: readSimpleSeconds(), name: "" };
+      }
+      return {
+        kind: "tabata",
+        work: readNumber(workInput, 1, 600, 20),
+        rest: readNumber(restInput, 0, 600, 10),
+        rounds: readNumber(roundInput, 1, 99, 8),
+        name: ""
+      };
+    }
+
+    function specFromClock(clock) {
+      if (clock.kind === "simple") return { kind: "simple", seconds: clock.seconds, name: clock.name };
+      return { kind: "tabata", work: clock.work, rest: clock.rest, rounds: clock.rounds, name: clock.name };
+    }
+
+    function cloneSpec(spec) {
+      return spec.kind === "simple"
+        ? { kind: "simple", seconds: spec.seconds, name: spec.name }
+        : { kind: "tabata", work: spec.work, rest: spec.rest, rounds: spec.rounds, name: spec.name };
+    }
+
+    function plannedSteps() {
+      if (state.flow.length) {
+        const steps = [];
+        for (const id of state.flow) {
+          const clock = state.clocks.find((item) => item.id === id);
+          if (clock) steps.push(specFromClock(clock));
+        }
+        if (steps.length) return steps;
+      }
+      return [draftSpec()];
+    }
+
+    function previewSpec() {
+      return plannedSteps()[0];
+    }
+
+    function displaySpec() {
+      const timer = state.timer;
+      if (timer.run && timer.phase !== "idle") {
+        return timer.run.steps[timer.run.index] || previewSpec();
+      }
+      return previewSpec();
+    }
+
+    function openingMs(spec) {
+      return (spec.kind === "simple" ? spec.seconds : spec.work) * 1000;
+    }
+
+    function formatSummary(spec) {
+      if (spec.kind === "simple") {
+        const minutes = Math.floor(spec.seconds / 60);
+        const seconds = spec.seconds % 60;
+        if (minutes === 0) return `${seconds}秒`;
+        return `${minutes}分${String(seconds).padStart(2, "0")}秒`;
+      }
+      return `${spec.work}秒 / ${spec.rest}秒 × ${spec.rounds}`;
+    }
+
+    function usingFlow() {
+      return state.flow.some((id) => state.clocks.some((item) => item.id === id));
+    }
+
     function renderTimer() {
       const timer = state.timer;
-      const total = roundTotal();
-      const phaseName = { idle: "準備", work: "運動", rest: "休憩", done: "終了" }[timer.phase];
+      const spec = displaySpec();
+      const counting = isCounting();
+      const steps = timer.run && timer.phase !== "idle" ? timer.run.steps : plannedSteps();
+      const stepIndex = timer.run && timer.phase !== "idle" ? timer.run.index : 0;
+      const totalSteps = steps.length;
+      const phaseName = { idle: "準備", work: "運動", rest: "休憩", simple: "計測", done: "終了" }[timer.phase];
       phaseEl.textContent = phaseName;
-      timeEl.textContent = timer.phase === "done" ? "終了" : String(Math.max(0, Math.ceil(timer.remainingMs / 1000)));
-      roundLabel.textContent = timer.phase === "done" ? `${total}セット終わりました` : `セット ${Math.min(timer.round, total)} / ${total}`;
-      roundsEl.hidden = total > 12;
-      if (!roundsEl.hidden) {
-        roundsEl.innerHTML = Array.from({ length: total }, (_, index) => {
-          const now = timer.phase !== "idle" && timer.phase !== "done" && index === timer.round - 1;
-          const filled = timer.phase === "done" || index < timer.round - 1;
+      const timeText = timer.phase === "done" ? "終了" : String(Math.max(0, Math.ceil(timer.remainingMs / 1000)));
+      timeEl.textContent = timeText;
+      timeEl.classList.toggle("is-compact", timeText.length >= 4);
+      if (timer.phase === "done") {
+        if (totalSteps > 1) roundLabel.textContent = `${totalSteps}件終わりました`;
+        else if (spec.kind === "simple") roundLabel.textContent = "終わりました";
+        else roundLabel.textContent = `${spec.rounds}セット終わりました`;
+      } else if (spec.kind === "simple") {
+        roundLabel.textContent = spec.name || "一定時間";
+      } else {
+        const total = spec.rounds;
+        roundLabel.textContent = `セット ${Math.min(timer.round, total)} / ${total}`;
+      }
+      const showCaption = timer.phase !== "done" && usingFlow() && (totalSteps > 1 || (spec.kind === "tabata" && spec.name));
+      flowCaption.hidden = !showCaption;
+      if (showCaption) {
+        const place = `${stepIndex + 1} / ${totalSteps}`;
+        if (spec.kind === "simple") flowCaption.textContent = place;
+        else if (totalSteps > 1 && spec.name) flowCaption.textContent = `${spec.name} · ${place}`;
+        else flowCaption.textContent = spec.name || place;
+      }
+      const showDots = spec.kind === "tabata" && spec.rounds <= 12 && timer.phase !== "done";
+      roundsEl.hidden = !showDots;
+      if (showDots) {
+        roundsEl.innerHTML = Array.from({ length: spec.rounds }, (_, index) => {
+          const now = index === timer.round - 1 && (counting || timer.phase === "idle");
+          const filled = index < timer.round - 1;
           return `<i class="${filled ? "on" : ""} ${now ? "now" : ""}"></i>`;
         }).join("");
       }
+      timerEditor.hidden = counting;
+      editorLabel.hidden = counting || !usingFlow();
+      tabataSettings.hidden = state.clockKind === "simple";
+      simpleSettings.hidden = state.clockKind !== "simple";
+      document.querySelectorAll("#kind-switch button").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.kind === state.clockKind));
+      });
       timerCard.classList.toggle("is-work", timer.phase === "work");
       timerCard.classList.toggle("is-rest", timer.phase === "rest");
       timerCard.classList.toggle("is-done", timer.phase === "done");
       timerCard.classList.toggle("is-running", timer.running);
       goBtn.textContent = timer.running ? "一時停止" : timer.phase === "done" ? "もう一度" : "スタート";
+      renderClockSave();
+    }
+
+    function flashClock(message) {
+      state.clockStatus = message;
+      state.clockHold = true;
+    }
+
+    function closeClockSave() {
+      state.clockSave.phase = null;
+      state.clockSave.draft = "";
+      state.clockSave.error = "";
+    }
+
+    function clockDraftName() {
+      const input = document.getElementById("clock-name");
+      if (input) state.clockSave.draft = input.value;
+      return normalize(state.clockSave.draft).slice(0, 24);
+    }
+
+    function renderClockSave() {
+      if (isCounting()) return;
+      const ui = state.clockSave;
+      const fieldId = "clock-name";
+      const previous = document.getElementById(fieldId);
+      const preserve = previous && document.activeElement === previous
+        ? { start: previous.selectionStart, end: previous.selectionEnd }
+        : null;
+      if (preserve) ui.draft = previous.value;
+      if (ui.phase === "save" || ui.phase === "overwrite") {
+        const error = ui.error ? `<p class="form-error">${esc(ui.error)}</p>` : "";
+        const actions = ui.phase === "overwrite"
+          ? `<p class="part-note">同じ名前があります</p>
+            <button type="button" class="primary" data-clock-overwrite>上書きする</button>
+            <button type="button" class="text-btn" data-clock-cancel>やめる</button>`
+          : `<button type="button" class="primary" data-clock-commit>保存する</button>
+            <button type="button" class="text-btn" data-clock-cancel>やめる</button>`;
+        clockSaveEl.innerHTML = `<div class="clock-save">
+          <input type="text" id="${fieldId}" maxlength="24" placeholder="インターバル、など" aria-label="タイマー名" autocomplete="off" value="${esc(ui.draft)}">
+          ${actions}
+          ${error}
+        </div>`;
+        const next = document.getElementById(fieldId);
+        if (state.focusClock && next) {
+          state.focusClock = false;
+          next.focus();
+          const end = next.value.length;
+          next.setSelectionRange(end, end);
+        } else if (preserve && next) {
+          next.focus();
+          const end = next.value.length;
+          next.setSelectionRange(Math.min(preserve.start ?? end, end), Math.min(preserve.end ?? end, end));
+        }
+        return;
+      }
+      clockSaveEl.innerHTML = `<div class="save-row"><button type="button" class="text-btn" data-clock-arm>設定を保存</button></div>`;
+    }
+
+    function clockRow(clock, actions) {
+      return `<div class="clock-row">
+        <div class="body"><strong>${esc(clock.name)}</strong><span class="meta">${esc(formatSummary(specFromClock(clock)))}</span></div>
+        ${actions}
+      </div>`;
+    }
+
+    function renderClocks() {
+      if (!timerClocks || !clockStatusEl) return;
+      const ui = state.clockUi;
+      if ((ui.phase === "delete" || ui.phase === "confirm-delete") && !state.clocks.length) {
+        ui.phase = null;
+        ui.deleteId = null;
+      } else if (ui.phase === "confirm-delete" && !state.clocks.some((item) => item.id === ui.deleteId)) {
+        ui.phase = "delete";
+        ui.deleteId = null;
+      }
+      if (state.clockHold) state.clockHold = false;
+      else state.clockStatus = "";
+      clockStatusEl.textContent = state.clockStatus;
+      const counting = isCounting();
+      const steps = state.timer.run && state.timer.phase !== "idle" ? state.timer.run.steps : plannedSteps();
+      const currentIndex = counting ? (state.timer.run ? state.timer.run.index : 0) : -1;
+      if (!state.clocks.length && !state.flow.length) {
+        timerClocks.innerHTML = "";
+        return;
+      }
+      let saved = "";
+      if (state.clocks.length) {
+        let head = "";
+        if (ui.phase === "confirm-delete") {
+          const clock = state.clocks.find((item) => item.id === ui.deleteId);
+          const used = clock && state.flow.includes(clock.id);
+          head = `<p class="clock-hint">『${esc(clock.name)}』を削除します。${used ? "この順番からも外れます。" : ""}</p>
+            <button type="button" class="text-btn danger" data-clock-confirm-delete>削除する</button>
+            <button type="button" class="text-btn" data-clock-cancel>やめる</button>`;
+        } else if (ui.phase === "delete") {
+          head = `<p class="clock-hint">削除するタイマーを選んでください</p>
+            <button type="button" class="text-btn" data-clock-cancel>やめる</button>`;
+        } else {
+          head = `<div class="clock-top"><h2>保存したタイマー</h2>
+            ${counting ? "" : `<button type="button" class="text-btn" data-clock-arm-delete>削除</button>`}</div>`;
+        }
+        const hint = state.flow.length || ui.phase === "delete" || ui.phase === "confirm-delete"
+          ? ""
+          : `<p class="clock-hint">追加した順に計測します。</p>`;
+        const rows = state.clocks.map((clock) => {
+          if (ui.phase === "delete" || ui.phase === "confirm-delete") {
+            const on = ui.phase === "confirm-delete" && ui.deleteId === clock.id;
+            return `<button type="button" class="clock-row" data-clock-pick="${esc(clock.id)}" aria-pressed="${on}">
+              <div class="body"><strong>${esc(clock.name)}</strong><span class="meta">${esc(formatSummary(specFromClock(clock)))}</span></div>
+            </button>`;
+          }
+          if (counting) return clockRow(clock, "");
+          return clockRow(clock, `<div class="clock-actions"><button type="button" class="text-btn" data-clock-add="${esc(clock.id)}">追加</button></div>`);
+        }).join("");
+        saved = `<section class="clock-block">${head}${hint}${rows}</section>`;
+      }
+      let flow = "";
+      if (state.flow.length) {
+        const rows = state.flow.map((id, index) => {
+          const clock = state.clocks.find((item) => item.id === id);
+          if (!clock) return "";
+          const current = index === currentIndex;
+          const actions = counting ? "" : `<div class="clock-actions">
+            ${index > 0 ? `<button type="button" class="text-btn" data-clock-up="${index}">上へ</button>` : ""}
+            ${index < state.flow.length - 1 ? `<button type="button" class="text-btn" data-clock-down="${index}">下へ</button>` : ""}
+            <button type="button" class="text-btn" data-clock-remove="${index}">外す</button>
+          </div>`;
+          return `<div class="clock-row${current ? " is-current" : ""}">
+            <div class="clock-ord">${index + 1}</div>
+            <div class="body"><strong>${esc(clock.name)}</strong><span class="meta">${esc(formatSummary(specFromClock(clock)))}</span></div>
+            ${actions}
+          </div>`;
+        }).join("");
+        flow = `<section class="clock-block"><div class="clock-top"><h2>この順で計測</h2></div>${rows}</section>`;
+      }
+      timerClocks.innerHTML = saved + flow;
+    }
+
+    function refreshClocks() {
+      renderClocks();
+      renderTimer();
+    }
+
+    function commitClock(overwrite) {
+      const ui = state.clockSave;
+      const name = clockDraftName();
+      const showError = (message) => {
+        ui.error = message;
+        ui.phase = "save";
+        state.focusClock = true;
+        renderClockSave();
+      };
+      if (!name) {
+        showError("名前を入力してください");
+        return;
+      }
+      const existingIndex = state.clocks.findIndex((item) => item.name === name);
+      if (existingIndex >= 0 && !overwrite) {
+        ui.phase = "overwrite";
+        ui.error = "";
+        renderClockSave();
+        return;
+      }
+      if (existingIndex < 0 && state.clocks.length >= 30) {
+        showError("30件まで保存できます");
+        return;
+      }
+      const spec = draftSpec();
+      const previous = existingIndex >= 0 ? state.clocks[existingIndex] : null;
+      const clock = spec.kind === "simple"
+        ? { id: previous ? previous.id : newLibraryId(), name, kind: "simple", seconds: spec.seconds }
+        : { id: previous ? previous.id : newLibraryId(), name, kind: "tabata", work: spec.work, rest: spec.rest, rounds: spec.rounds };
+      if (existingIndex >= 0) state.clocks[existingIndex] = clock;
+      else state.clocks.push(clock);
+      closeClockSave();
+      if (!saveClockStore()) {
+        if (existingIndex >= 0) state.clocks[existingIndex] = previous;
+        else state.clocks.pop();
+        ui.phase = "save";
+        ui.draft = name;
+        ui.error = "保存できませんでした";
+        state.focusClock = true;
+        refreshClocks();
+        return;
+      }
+      flashClock(`${name}を保存しました`);
+      refreshClocks();
+    }
+
+    function saveClockStore() {
+      const before = state.timer.phase;
+      saveTimer();
+      const timerStatus = document.getElementById("timer-status");
+      return before === state.timer.phase && timerStatus && timerStatus.hidden;
+    }
+
+    function deleteClock() {
+      const ui = state.clockUi;
+      const index = state.clocks.findIndex((item) => item.id === ui.deleteId);
+      if (index < 0) {
+        ui.phase = null;
+        ui.deleteId = null;
+        refreshClocks();
+        return;
+      }
+      const [removed] = state.clocks.splice(index, 1);
+      const previousFlow = state.flow.slice();
+      state.flow = state.flow.filter((id) => id !== removed.id);
+      ui.phase = null;
+      ui.deleteId = null;
+      if (!saveClockStore()) {
+        state.clocks.splice(index, 0, removed);
+        state.flow = previousFlow;
+        ui.phase = "confirm-delete";
+        ui.deleteId = removed.id;
+        refreshClocks();
+        return;
+      }
+      if (state.timer.phase === "idle") state.timer.remainingMs = openingMs(previewSpec());
+      flashClock(`${removed.name}を削除しました`);
+      refreshClocks();
     }
 
     function showMode(mode) {
@@ -2996,42 +3611,69 @@
       stopTimer();
     }
 
-    function beginWork() {
-      state.timer.phase = "work";
-      state.timer.remainingMs = workMs();
-      endsAt = Date.now() + state.timer.remainingMs;
+    function beginCurrent() {
+      const timer = state.timer;
+      const spec = timer.run.steps[timer.run.index];
+      timer.round = 1;
+      if (spec.kind === "simple") {
+        timer.phase = "simple";
+        timer.remainingMs = spec.seconds * 1000;
+      } else {
+        timer.phase = "work";
+        timer.remainingMs = spec.work * 1000;
+      }
+      endsAt = Date.now() + timer.remainingMs;
+    }
+
+    function advanceFlow() {
+      const timer = state.timer;
+      if (timer.run.index + 1 >= timer.run.steps.length) {
+        finishTimer();
+        return;
+      }
+      timer.run.index += 1;
+      beginCurrent();
     }
 
     function advancePhase() {
       const timer = state.timer;
-      const total = roundTotal();
+      const spec = timer.run.steps[timer.run.index];
+      if (timer.phase === "simple") {
+        advanceFlow();
+        return;
+      }
       if (timer.phase === "work") {
-        if (timer.round >= total) {
-          finishTimer();
+        if (timer.round >= spec.rounds) {
+          advanceFlow();
           return;
         }
-        if (restMs() === 0) {
+        if (spec.rest === 0) {
           timer.round += 1;
-          beginWork();
+          timer.phase = "work";
+          timer.remainingMs = spec.work * 1000;
+          endsAt = Date.now() + timer.remainingMs;
           return;
         }
         timer.phase = "rest";
-        timer.remainingMs = restMs();
+        timer.remainingMs = spec.rest * 1000;
         endsAt = Date.now() + timer.remainingMs;
         return;
       }
-      if (timer.round >= total) {
-        finishTimer();
+      if (timer.round >= spec.rounds) {
+        advanceFlow();
         return;
       }
       timer.round += 1;
-      beginWork();
+      timer.phase = "work";
+      timer.remainingMs = spec.work * 1000;
+      endsAt = Date.now() + timer.remainingMs;
     }
 
     function tick() {
       state.timer.remainingMs = Math.max(0, endsAt - Date.now());
       if (state.timer.remainingMs <= 0) advancePhase();
       renderTimer();
+      renderClocks();
     }
 
     goBtn.addEventListener("click", () => {
@@ -3040,29 +3682,35 @@
         timer.remainingMs = Math.max(0, endsAt - Date.now());
         stopTimer();
         renderTimer();
+        renderClocks();
         return;
       }
       if (timer.phase === "done" || timer.phase === "idle") {
-        timer.round = 1;
-        beginWork();
+        timer.run = { steps: plannedSteps().map(cloneSpec), index: 0 };
+        state.clockUi.phase = null;
+        state.clockUi.deleteId = null;
+        beginCurrent();
       }
       timer.running = true;
       endsAt = Date.now() + timer.remainingMs;
       clearInterval(timerHandle);
       timerHandle = setInterval(tick, 200);
       renderTimer();
+      renderClocks();
     });
 
     document.getElementById("reset").addEventListener("click", () => {
       stopTimer();
       state.timer.phase = "idle";
       state.timer.round = 1;
-      state.timer.remainingMs = workMs();
+      state.timer.run = null;
+      state.timer.remainingMs = openingMs(previewSpec());
       renderTimer();
+      renderClocks();
     });
 
     function applyTimerSettings() {
-      if (state.timer.phase === "idle") state.timer.remainingMs = workMs();
+      if (state.timer.phase === "idle") state.timer.remainingMs = openingMs(previewSpec());
       saveTimer();
       renderTimer();
       renderLibrary("timer");
@@ -3077,12 +3725,151 @@
       });
     });
 
+    [simpleMinInput, simpleSecInput].forEach((input) => {
+      input.addEventListener("input", applyTimerSettings);
+      input.addEventListener("change", () => {
+        writeSimpleFields(readSimpleSeconds());
+        applyTimerSettings();
+      });
+    });
+
+    document.getElementById("kind-switch").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-kind]");
+      if (!button || button.dataset.kind === state.clockKind) return;
+      state.clockKind = button.dataset.kind === "simple" ? "simple" : "tabata";
+      applyTimerSettings();
+    });
+
+    function onClockClick(event) {
+      if (event.target.closest("[data-clock-arm]")) {
+        state.clockSave.phase = "save";
+        state.clockSave.error = "";
+        state.focusClock = true;
+        renderClockSave();
+        return;
+      }
+      if (event.target.closest("[data-clock-cancel]")) {
+        closeClockSave();
+        state.clockUi.phase = null;
+        state.clockUi.deleteId = null;
+        refreshClocks();
+        return;
+      }
+      if (event.target.closest("[data-clock-commit]")) {
+        commitClock(false);
+        return;
+      }
+      if (event.target.closest("[data-clock-overwrite]")) {
+        commitClock(true);
+        return;
+      }
+      if (event.target.closest("[data-clock-arm-delete]")) {
+        if (isCounting()) return;
+        closeClockSave();
+        state.clockUi.phase = "delete";
+        state.clockUi.deleteId = null;
+        refreshClocks();
+        return;
+      }
+      if (event.target.closest("[data-clock-confirm-delete]")) {
+        deleteClock();
+        return;
+      }
+      const pick = event.target.closest("[data-clock-pick]");
+      if (pick) {
+        state.clockUi.phase = "confirm-delete";
+        state.clockUi.deleteId = pick.dataset.clockPick;
+        refreshClocks();
+        return;
+      }
+      if (isCounting()) return;
+      const add = event.target.closest("[data-clock-add]");
+      if (add) {
+        if (state.flow.length >= 12) {
+          flashClock("12件までつなげられます");
+          refreshClocks();
+          return;
+        }
+        state.flow.push(add.dataset.clockAdd);
+        if (state.timer.phase === "idle") state.timer.remainingMs = openingMs(previewSpec());
+        saveTimer();
+        refreshClocks();
+        return;
+      }
+      const remove = event.target.closest("[data-clock-remove]");
+      if (remove) {
+        state.flow.splice(Number(remove.dataset.clockRemove), 1);
+        if (state.timer.phase === "idle") state.timer.remainingMs = openingMs(previewSpec());
+        saveTimer();
+        refreshClocks();
+        return;
+      }
+      const up = event.target.closest("[data-clock-up]");
+      if (up) {
+        const index = Number(up.dataset.clockUp);
+        if (index > 0) {
+          const [item] = state.flow.splice(index, 1);
+          state.flow.splice(index - 1, 0, item);
+          if (state.timer.phase === "idle") state.timer.remainingMs = openingMs(previewSpec());
+          saveTimer();
+          refreshClocks();
+        }
+        return;
+      }
+      const down = event.target.closest("[data-clock-down]");
+      if (!down) return;
+      const index = Number(down.dataset.clockDown);
+      if (index < state.flow.length - 1) {
+        const [item] = state.flow.splice(index, 1);
+        state.flow.splice(index + 1, 0, item);
+        if (state.timer.phase === "idle") state.timer.remainingMs = openingMs(previewSpec());
+        saveTimer();
+        refreshClocks();
+      }
+    }
+
+    clockSaveEl.addEventListener("click", onClockClick);
+    timerClocks.addEventListener("click", onClockClick);
+    clockSaveEl.addEventListener("input", (event) => {
+      if (!event.target || event.target.id !== "clock-name") return;
+      const ui = state.clockSave;
+      const before = ui.phase;
+      const hadError = ui.error;
+      ui.draft = event.target.value;
+      if (event.isComposing) return;
+      if (ui.error) ui.error = "";
+      if (ui.phase === "overwrite") {
+        const name = normalize(event.target.value).slice(0, 24);
+        if (!state.clocks.some((item) => item.name === name)) ui.phase = "save";
+      }
+      if (ui.phase === before && ui.error === hadError) return;
+      const caret = event.target.selectionStart;
+      renderClockSave();
+      const next = document.getElementById("clock-name");
+      if (!next) return;
+      next.focus();
+      next.setSelectionRange(caret, caret);
+    });
+    clockSaveEl.addEventListener("compositionend", (event) => {
+      if (!event.target || event.target.id !== "clock-name") return;
+      ignoreClockEnter = true;
+      setTimeout(() => { ignoreClockEnter = false; }, 0);
+    });
+    clockSaveEl.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.target.id !== "clock-name") return;
+      if (event.isComposing || event.keyCode === 229 || ignoreClockEnter) return;
+      event.preventDefault();
+      commitClock(state.clockSave.phase === "overwrite");
+    });
+
     function returnToReady() {
       stopTimer();
       state.timer.phase = "idle";
       state.timer.round = 1;
-      state.timer.remainingMs = workMs();
+      state.timer.run = null;
+      state.timer.remainingMs = openingMs(previewSpec());
       renderTimer();
+      renderClocks();
     }
 
     document.addEventListener("visibilitychange", () => {
@@ -3096,6 +3883,8 @@
     workInput.value = String(loadedTimer.work);
     restInput.value = String(loadedTimer.rest);
     roundInput.value = String(loadedTimer.rounds);
+    writeSimpleFields(loadedTimer.simpleSec);
+    state.timer.remainingMs = openingMs(previewSpec());
 
     renderMenu();
     renderSession();
