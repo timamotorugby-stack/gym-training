@@ -936,6 +936,26 @@
 
     .clock-actions { display: flex; gap: 2px; flex: 0 0 auto; }
 
+    .clock-row.is-editing {
+      display: block;
+      padding: 14px 14px 12px;
+      border-color: var(--ink);
+    }
+
+    .clock-edit input[type="text"] { margin-top: 0; }
+
+    .clock-edit .kind-switch { margin: 10px 0 12px; }
+
+    .clock-edit .timer-settings { margin-bottom: 12px; }
+
+    .clock-edit .edit-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .clock-edit .form-error { margin: 8px 0 0; }
+
     .clock-status {
       margin: 8px 0 0;
       font-weight: 700;
@@ -1828,6 +1848,8 @@
       clockStatus: "",
       clockHold: false,
       focusClock: false,
+      clockEdit: null,
+      focusClockEdit: false,
       library: { menu: loadedLibrary.menu, timer: loadedLibrary.timer },
       libraryUi: {
         menu: { phase: null, draft: "", error: "", deleteId: null },
@@ -1856,6 +1878,7 @@
     let ignorePartEnter = false;
     let ignoreLibraryEnter = false;
     let ignoreClockEnter = false;
+    let ignoreClockEditEnter = false;
 
     let endsAt = 0;
     let timerHandle = null;
@@ -2992,8 +3015,99 @@
       </div>`;
     }
 
+    function clockEditDraft(clock) {
+      const seconds = clock.kind === "simple" ? clock.seconds : 60;
+      return {
+        id: clock.id,
+        kind: clock.kind === "simple" ? "simple" : "tabata",
+        name: clock.name,
+        work: String(clock.kind === "tabata" ? clock.work : 20),
+        rest: String(clock.kind === "tabata" ? clock.rest : 10),
+        rounds: String(clock.kind === "tabata" ? clock.rounds : 8),
+        simpleMin: String(Math.floor(seconds / 60)),
+        simpleSec: String(seconds % 60),
+        error: ""
+      };
+    }
+
+    function captureClockEdit() {
+      const edit = state.clockEdit;
+      const form = document.getElementById("clock-edit-form");
+      if (!edit || !form || form.dataset.editId !== edit.id) return null;
+      const name = document.getElementById("clock-edit-name");
+      const preserve = name && document.activeElement === name
+        ? { start: name.selectionStart, end: name.selectionEnd }
+        : null;
+      if (name) edit.name = name.value;
+      const fields = [
+        ["clock-edit-work", "work"],
+        ["clock-edit-rest", "rest"],
+        ["clock-edit-rounds", "rounds"],
+        ["clock-edit-min", "simpleMin"],
+        ["clock-edit-sec", "simpleSec"]
+      ];
+      for (const [id, key] of fields) {
+        const input = document.getElementById(id);
+        if (input) edit[key] = input.value;
+      }
+      return preserve;
+    }
+
+    function finishClockEditFocus(preserve) {
+      const nameInput = document.getElementById("clock-edit-name");
+      const row = timerClocks.querySelector(".clock-row.is-editing");
+      if (!nameInput) return;
+      if (state.focusClockEdit) {
+        state.focusClockEdit = false;
+        nameInput.focus({ preventScroll: true });
+        const end = nameInput.value.length;
+        nameInput.setSelectionRange(end, end);
+        if (row) row.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (!preserve) return;
+      nameInput.focus({ preventScroll: true });
+      const end = nameInput.value.length;
+      nameInput.setSelectionRange(
+        Math.min(preserve.start ?? end, end),
+        Math.min(preserve.end ?? end, end)
+      );
+    }
+
+    function clockEditHtml(edit) {
+      const tabata = edit.kind !== "simple";
+      const error = edit.error ? `<p class="form-error">${esc(edit.error)}</p>` : "";
+      const settings = tabata
+        ? `<div class="timer-settings">
+            <label>ワーク<input id="clock-edit-work" type="number" min="1" max="600" inputmode="numeric" value="${esc(edit.work)}"></label>
+            <label>レスト<input id="clock-edit-rest" type="number" min="0" max="600" inputmode="numeric" value="${esc(edit.rest)}"></label>
+            <label>セット<input id="clock-edit-rounds" type="number" min="1" max="99" inputmode="numeric" value="${esc(edit.rounds)}"></label>
+          </div>`
+        : `<div class="timer-settings two">
+            <label>分<input id="clock-edit-min" type="number" min="0" max="60" inputmode="numeric" value="${esc(edit.simpleMin)}"></label>
+            <label>秒<input id="clock-edit-sec" type="number" min="0" max="59" inputmode="numeric" value="${esc(edit.simpleSec)}"></label>
+          </div>`;
+      return `<div class="clock-row is-editing">
+        <div class="clock-edit" id="clock-edit-form" data-edit-id="${esc(edit.id)}">
+          <input type="text" id="clock-edit-name" maxlength="24" aria-label="タイマー名" autocomplete="off" value="${esc(edit.name)}">
+          <div class="kind-switch" role="group" aria-label="タイマーの種類">
+            <button type="button" data-edit-kind="tabata" aria-pressed="${tabata ? "true" : "false"}">タバタ</button>
+            <button type="button" data-edit-kind="simple" aria-pressed="${tabata ? "false" : "true"}">一定時間</button>
+          </div>
+          ${settings}
+          <div class="edit-actions">
+            <button type="button" class="primary" data-clock-edit-save>保存する</button>
+            <button type="button" class="text-btn" data-clock-edit-cancel>やめる</button>
+          </div>
+          ${error}
+        </div>
+      </div>`;
+    }
+
     function renderClocks() {
       if (!timerClocks || !clockStatusEl) return;
+      const preserve = captureClockEdit();
+      if (state.clockEdit && !state.clocks.some((item) => item.id === state.clockEdit.id)) state.clockEdit = null;
       const ui = state.clockUi;
       if ((ui.phase === "delete" || ui.phase === "confirm-delete") && !state.clocks.length) {
         ui.phase = null;
@@ -3009,6 +3123,7 @@
       const steps = state.timer.run && state.timer.phase !== "idle" ? state.timer.run.steps : plannedSteps();
       const currentIndex = counting ? (state.timer.run ? state.timer.run.index : 0) : -1;
       if (!state.clocks.length && !state.flow.length) {
+        state.clockEdit = null;
         timerClocks.innerHTML = "";
         return;
       }
@@ -3032,6 +3147,7 @@
           ? ""
           : `<p class="clock-hint">追加した順に計測します。</p>`;
         const rows = state.clocks.map((clock) => {
+          if (state.clockEdit && state.clockEdit.id === clock.id) return clockEditHtml(state.clockEdit);
           if (ui.phase === "delete" || ui.phase === "confirm-delete") {
             const on = ui.phase === "confirm-delete" && ui.deleteId === clock.id;
             return `<button type="button" class="clock-row" data-clock-pick="${esc(clock.id)}" aria-pressed="${on}">
@@ -3039,7 +3155,7 @@
             </button>`;
           }
           if (counting) return clockRow(clock, "");
-          return clockRow(clock, `<div class="clock-actions"><button type="button" class="text-btn" data-clock-add="${esc(clock.id)}">追加</button></div>`);
+          return clockRow(clock, `<div class="clock-actions"><button type="button" class="text-btn" data-clock-edit="${esc(clock.id)}">編集</button><button type="button" class="text-btn" data-clock-add="${esc(clock.id)}">追加</button></div>`);
         }).join("");
         saved = `<section class="clock-block">${head}${hint}${rows}</section>`;
       }
@@ -3054,7 +3170,7 @@
             ${index < state.flow.length - 1 ? `<button type="button" class="text-btn" data-clock-down="${index}">下へ</button>` : ""}
             <button type="button" class="text-btn" data-clock-remove="${index}">外す</button>
           </div>`;
-          return `<div class="clock-row${current ? " is-current" : ""}">
+          return `<div class="clock-row${current ? " is-current" : ""}" data-flow-index="${index}">
             <div class="clock-ord">${index + 1}</div>
             <div class="body"><strong>${esc(clock.name)}</strong><span class="meta">${esc(formatSummary(specFromClock(clock)))}</span></div>
             ${actions}
@@ -3063,6 +3179,83 @@
         flow = `<section class="clock-block"><div class="clock-top"><h2>この順で計測</h2></div>${rows}</section>`;
       }
       timerClocks.innerHTML = saved + flow;
+      finishClockEditFocus(preserve);
+    }
+
+    function markFlowCurrent() {
+      if (!timerClocks) return;
+      const currentIndex = isCounting() && state.timer.run ? state.timer.run.index : -1;
+      timerClocks.querySelectorAll("[data-flow-index]").forEach((row) => {
+        row.classList.toggle("is-current", Number(row.dataset.flowIndex) === currentIndex);
+      });
+    }
+
+    function beginClockEdit(id) {
+      if (isCounting()) return;
+      const clock = state.clocks.find((item) => item.id === id);
+      if (!clock) return;
+      state.clockUi.phase = null;
+      state.clockUi.deleteId = null;
+      state.clockEdit = clockEditDraft(clock);
+      state.focusClockEdit = true;
+      refreshClocks();
+    }
+
+    function editSeconds(edit) {
+      let minutes = readStoredNumber(edit.simpleMin, 0, 60, 0);
+      let seconds = readStoredNumber(edit.simpleSec, 0, 59, 0);
+      if (minutes >= 60) {
+        minutes = 60;
+        seconds = 0;
+      }
+      return Math.min(3600, Math.max(1, minutes * 60 + seconds));
+    }
+
+    function commitClockEdit() {
+      const edit = state.clockEdit;
+      if (!edit) return;
+      captureClockEdit();
+      const name = normalize(edit.name).slice(0, 24);
+      const showError = (message) => {
+        edit.error = message;
+        state.focusClockEdit = true;
+        refreshClocks();
+      };
+      if (!name) {
+        showError("名前を入力してください");
+        return;
+      }
+      const index = state.clocks.findIndex((item) => item.id === edit.id);
+      if (index < 0) {
+        state.clockEdit = null;
+        refreshClocks();
+        return;
+      }
+      if (state.clocks.some((item) => item.name === name && item.id !== edit.id)) {
+        showError("同じ名前があります");
+        return;
+      }
+      const previous = state.clocks[index];
+      const clock = edit.kind === "simple"
+        ? { id: edit.id, name, kind: "simple", seconds: editSeconds(edit) }
+        : {
+          id: edit.id,
+          name,
+          kind: "tabata",
+          work: readStoredNumber(edit.work, 1, 600, 20),
+          rest: readStoredNumber(edit.rest, 0, 600, 10),
+          rounds: readStoredNumber(edit.rounds, 1, 99, 8)
+        };
+      state.clocks[index] = clock;
+      if (!saveClockStore()) {
+        state.clocks[index] = previous;
+        showError("保存できませんでした");
+        return;
+      }
+      state.clockEdit = null;
+      if (state.timer.phase === "idle") state.timer.remainingMs = openingMs(previewSpec());
+      flashClock(`${name}を保存しました`);
+      refreshClocks();
     }
 
     function refreshClocks() {
@@ -3673,7 +3866,8 @@
       state.timer.remainingMs = Math.max(0, endsAt - Date.now());
       if (state.timer.remainingMs <= 0) advancePhase();
       renderTimer();
-      renderClocks();
+      if (state.clockEdit) markFlowCurrent();
+      else renderClocks();
     }
 
     goBtn.addEventListener("click", () => {
@@ -3741,6 +3935,30 @@
     });
 
     function onClockClick(event) {
+      if (event.target.closest("[data-clock-edit-save]")) {
+        commitClockEdit();
+        return;
+      }
+      if (event.target.closest("[data-clock-edit-cancel]")) {
+        state.clockEdit = null;
+        refreshClocks();
+        return;
+      }
+      const editKind = event.target.closest("[data-edit-kind]");
+      if (editKind && state.clockEdit) {
+        const next = editKind.dataset.editKind === "simple" ? "simple" : "tabata";
+        if (next === state.clockEdit.kind) return;
+        captureClockEdit();
+        state.clockEdit.kind = next;
+        state.clockEdit.error = "";
+        refreshClocks();
+        return;
+      }
+      const editButton = event.target.closest("[data-clock-edit]");
+      if (editButton) {
+        beginClockEdit(editButton.dataset.clockEdit);
+        return;
+      }
       if (event.target.closest("[data-clock-arm]")) {
         state.clockSave.phase = "save";
         state.clockSave.error = "";
@@ -3766,6 +3984,7 @@
       if (event.target.closest("[data-clock-arm-delete]")) {
         if (isCounting()) return;
         closeClockSave();
+        state.clockEdit = null;
         state.clockUi.phase = "delete";
         state.clockUi.deleteId = null;
         refreshClocks();
@@ -3830,6 +4049,76 @@
 
     clockSaveEl.addEventListener("click", onClockClick);
     timerClocks.addEventListener("click", onClockClick);
+    timerClocks.addEventListener("input", (event) => {
+      const edit = state.clockEdit;
+      if (!edit) return;
+      const el = event.target;
+      const fields = {
+        "clock-edit-name": "name",
+        "clock-edit-work": "work",
+        "clock-edit-rest": "rest",
+        "clock-edit-rounds": "rounds",
+        "clock-edit-min": "simpleMin",
+        "clock-edit-sec": "simpleSec"
+      };
+      const key = fields[el.id];
+      if (!key) return;
+      edit[key] = el.value;
+      if (el.id !== "clock-edit-name" || event.isComposing || !edit.error) return;
+      const name = normalize(el.value).slice(0, 24);
+      const stillTaken = name && state.clocks.some((item) => item.name === name && item.id !== edit.id);
+      const stillEmpty = !name;
+      if (edit.error === "同じ名前があります" && stillTaken) return;
+      if (edit.error === "名前を入力してください" && stillEmpty) return;
+      edit.error = "";
+      const caret = el.selectionStart;
+      refreshClocks();
+      const next = document.getElementById("clock-edit-name");
+      if (!next) return;
+      next.focus();
+      next.setSelectionRange(caret, caret);
+    });
+    timerClocks.addEventListener("change", (event) => {
+      const edit = state.clockEdit;
+      if (!edit) return;
+      const el = event.target;
+      if (el.id === "clock-edit-work") {
+        el.value = String(readNumber(el, 1, 600, 20));
+        edit.work = el.value;
+      } else if (el.id === "clock-edit-rest") {
+        el.value = String(readNumber(el, 0, 600, 10));
+        edit.rest = el.value;
+      } else if (el.id === "clock-edit-rounds") {
+        el.value = String(readNumber(el, 1, 99, 8));
+        edit.rounds = el.value;
+      } else if (el.id === "clock-edit-min" || el.id === "clock-edit-sec") {
+        const minInput = document.getElementById("clock-edit-min");
+        const secInput = document.getElementById("clock-edit-sec");
+        if (!minInput || !secInput) return;
+        let minutes = readNumber(minInput, 0, 60, 0);
+        let seconds = readNumber(secInput, 0, 59, 0);
+        if (minutes >= 60) {
+          minutes = 60;
+          seconds = 0;
+        }
+        const total = Math.min(3600, Math.max(1, minutes * 60 + seconds));
+        edit.simpleMin = String(Math.floor(total / 60));
+        edit.simpleSec = String(total % 60);
+        minInput.value = edit.simpleMin;
+        secInput.value = edit.simpleSec;
+      }
+    });
+    timerClocks.addEventListener("compositionend", (event) => {
+      if (!event.target || event.target.id !== "clock-edit-name") return;
+      ignoreClockEditEnter = true;
+      setTimeout(() => { ignoreClockEditEnter = false; }, 0);
+    });
+    timerClocks.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.target.id !== "clock-edit-name") return;
+      if (event.isComposing || event.keyCode === 229 || ignoreClockEditEnter) return;
+      event.preventDefault();
+      commitClockEdit();
+    });
     clockSaveEl.addEventListener("input", (event) => {
       if (!event.target || event.target.id !== "clock-name") return;
       const ui = state.clockSave;
